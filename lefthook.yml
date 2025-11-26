@@ -1,0 +1,15 @@
+pre-commit:
+  parallel: true
+  jobs:
+    - name: eslint
+      run: npx eslint {staged_files}
+      glob: "*.{js,ts,jsx,tsx}"
+
+    - name: prettier
+      run: npx prettier --write .
+      glob: "*.{js,ts,jsx,tsx,json,css,md,yml,yaml}"
+
+pre-push:
+  jobs:
+    - name: npm audit
+      run: npm audit --audit-level=moderate
