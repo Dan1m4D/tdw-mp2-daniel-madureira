@@ -5,6 +5,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { RouterProvider, createRouter } from '@tanstack/react-router'
 import { store } from './app/store'
 import { queryClient } from './app/queryClient'
+import { ThemeProvider } from './app/theme/ThemeProvider'
 import { routeTree } from './routeTree.gen'
 import './index.css'
 
@@ -18,10 +19,12 @@ declare module '@tanstack/react-router' {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Provider store={store}>
-      <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
-      </QueryClientProvider>
-    </Provider>
+    <ThemeProvider>
+      <Provider store={store}>
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>
+      </Provider>
+    </ThemeProvider>
   </StrictMode>,
 )
