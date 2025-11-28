@@ -1,8 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router'
 import type { Drink } from '../services/cocktailAPI'
 import { useCocktailSearch } from '../hooks/useCocktails'
-import { Wine, BookOpen, Zap } from 'lucide-react'
+import { Wine, BookOpen, Zap, X, Check } from 'lucide-react'
 import { useState } from 'react'
+import { useAppSelector } from '../app/hooks'
+import type { RootState } from '../app/store'
 
 export const Route = createFileRoute('/drinks')({
   component: DrinksPage,
@@ -10,7 +12,9 @@ export const Route = createFileRoute('/drinks')({
 
 function DrinksPage() {
   const [searchQuery, setSearchQuery] = useState('margarita') // Default search
+  const [selectedDrink, setSelectedDrink] = useState<Drink | null>(null)
   const { data: drinks, isLoading, error } = useCocktailSearch(searchQuery)
+  const playerInventory = useAppSelector((state: RootState) => state.game.inventory)
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -20,6 +24,11 @@ function DrinksPage() {
       setSearchQuery(query)
     }
   }
+
+  const closeDrawer = () => {
+    setSelectedDrink(null)
+  }
+
   return (
     <div className="min-h-[calc(100vh-120px)] py-12 px-4">
       {/* Background texture */}
@@ -87,9 +96,20 @@ function DrinksPage() {
         {drinks && drinks.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {drinks.map((drink, index) => (
-              <DrinkCard key={drink.id} drink={drink} index={index} />
+              <div key={drink.id} onClick={() => setSelectedDrink(drink)} className="block">
+                <DrinkCard drink={drink} index={index} />
+              </div>
             ))}
           </div>
+        )}
+
+        {/* Drink Detail Drawer */}
+        {selectedDrink && (
+          <DrinkDetailDrawer
+            drink={selectedDrink}
+            playerInventory={playerInventory}
+            onClose={closeDrawer}
+          />
         )}
       </div>
     </div>
@@ -164,6 +184,132 @@ function DrinkCard({ drink, index }: DrinkCardProps) {
         </div>
       </div>
     </div>
+  )
+}
+
+interface DrinkDetailDrawerProps {
+  drink: Drink
+  playerInventory: string[]
+  onClose: () => void
+}
+
+function DrinkDetailDrawer({ drink, playerInventory, onClose }: DrinkDetailDrawerProps) {
+  const drinkIngredients = drink.ingredients.map(ingredient => ({
+    name: ingredient.name,
+    measure: ingredient.measure,
+    has: playerInventory.some((inv: string) => inv.toLowerCase() === ingredient.name.toLowerCase()),
+  }))
+
+  const canCraft = drinkIngredients.every(ing => ing.has)
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 bg-black/50 z-40 transition-opacity"
+        onClick={onClose}
+      />
+
+      {/* Drawer from right */}
+      <div className="fixed right-0 top-0 h-full w-full max-w-lg bg-base-100 shadow-2xl z-50 overflow-y-auto">
+        {/* Close button */}
+        <div className="sticky top-0 flex items-center justify-between p-4 bg-base-100 border-b border-base-300">
+          <h2 className="text-2xl font-serif font-bold text-primary">{drink.name}</h2>
+          <button 
+            onClick={onClose}
+            className="btn btn-ghost btn-circle btn-sm"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {/* Drink Image */}
+          {drink.image && (
+            <div className="rounded-lg overflow-hidden border-2 border-base-300">
+              <img src={drink.image} alt={drink.name} className="w-full h-64 object-cover" />
+            </div>
+          )}
+
+          {/* Basic Info */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="bg-base-200 rounded p-3 text-center">
+              <p className="text-xs text-base-content/60">Glass</p>
+              <p className="text-sm font-semibold text-primary">{drink.glass}</p>
+            </div>
+            <div className="bg-base-200 rounded p-3 text-center">
+              <p className="text-xs text-base-content/60">Type</p>
+              <p className="text-sm font-semibold text-primary">{drink.alcoholic}</p>
+            </div>
+            <div className="bg-base-200 rounded p-3 text-center">
+              <p className="text-xs text-base-content/60">Category</p>
+              <p className="text-sm font-semibold text-primary">{drink.category}</p>
+            </div>
+          </div>
+
+          {/* Instructions */}
+          <div>
+            <h3 className="font-semibold text-lg mb-2 font-serif">Instructions</h3>
+            <p className="text-base-content/80 leading-relaxed italic">{drink.instructions}</p>
+          </div>
+
+          {/* Craftability Status */}
+          <div className={`alert ${canCraft ? 'alert-success' : 'alert-warning'}`}>
+            <div className="flex items-start gap-2">
+              {canCraft ? (
+                <Check size={20} className="text-success" />
+              ) : (
+                <Zap size={20} className="text-warning" />
+              )}
+              <div>
+                <h4 className="font-semibold">
+                  {canCraft ? '✓ You can craft this!' : '⚠ Missing ingredients'}
+                </h4>
+                <p className="text-sm opacity-90">
+                  {canCraft 
+                    ? 'All ingredients are in your inventory.' 
+                    : `You're missing ${drinkIngredients.filter(i => !i.has).length} ingredient(s)`}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Ingredients List */}
+          <div>
+            <h3 className="font-semibold text-lg mb-3 font-serif">Recipe ({drinkIngredients.length} ingredients)</h3>
+            <div className="space-y-2">
+              {drinkIngredients.map((ingredient) => (
+                <div key={ingredient.name} className={`flex items-center gap-3 p-3 rounded border-2 ${
+                  ingredient.has 
+                    ? 'bg-success/10 border-success/30' 
+                    : 'bg-warning/10 border-warning/30'
+                }`}>
+                  <div className={`shrink-0 ${ingredient.has ? 'text-success' : 'text-warning'}`}>
+                    {ingredient.has ? <Check size={20} /> : <X size={20} />}
+                  </div>
+                  <div className="flex-1">
+                    <p className={`font-medium ${ingredient.has ? 'text-success' : 'text-warning'}`}>
+                      {ingredient.name}
+                    </p>
+                    {ingredient.measure && (
+                      <p className="text-xs text-base-content/60">{ingredient.measure}</p>
+                    )}
+                  </div>
+                  <span className={`text-xs font-semibold ${ingredient.has ? 'text-success' : 'text-warning'}`}>
+                    {ingredient.has ? 'Have' : 'Missing'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Craft Button */}
+          <button className={`btn w-full ${canCraft ? 'btn-success' : 'btn-disabled'}`}>
+            {canCraft ? 'Craft Drink' : 'Cannot Craft'}
+          </button>
+        </div>
+      </div>
+    </>
   )
 }
 

@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { Play, Wine } from 'lucide-react'
 import { MapView, LocationDetails, NPCInformation } from '../components'
 
@@ -58,11 +58,11 @@ function Adventure() {
                 </h2>
                 <div className="divider my-2" />
                 <p className="text-sm text-base-content/70 mb-4">
-                  Select ingredients to craft the perfect drink
+                  Explore our cocktail collection and craft drinks
                 </p>
-                <button className="btn btn-outline btn-sm w-full" disabled>
-                  No ingredients available
-                </button>
+                <Link to="/drinks" className="btn btn-primary btn-sm w-full">
+                  View Cocktails
+                </Link>
               </div>
             </div>
           </div>
