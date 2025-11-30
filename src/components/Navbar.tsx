@@ -14,7 +14,9 @@ export function Navbar() {
             <Compass size={22} className="font-bold" />
           </div>
           <div>
-            <span className="text-lg font-bold text-primary tracking-wider font-serif block leading-none">The Wandering</span>
+            <span className="text-lg font-bold text-primary tracking-wider font-serif block leading-none">
+              The Wandering
+            </span>
             <span className="text-xs text-primary tracking-widest opacity-75">BARTENDER</span>
           </div>
         </div>

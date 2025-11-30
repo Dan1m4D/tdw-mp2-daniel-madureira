@@ -1,0 +1,41 @@
+---
+# Lefthook configuration
+# Pre-commit hooks that run before each commit
+
+pre-commit:
+  commands:
+    # Type checking
+    type-check:
+      glob: '**/*.{ts,tsx}'
+      run: pnpm type-check
+      stage_fixed: true
+      skip:
+        - merge
+        - rebase
+
+    # Code formatting with Prettier
+    prettier:
+      glob: '**/*.{ts,tsx,json,md,css,html}'
+      run: pnpm prettier:fix
+      stage_fixed: true
+      skip:
+        - merge
+        - rebase
+
+    # Linting with ESLint
+    eslint:
+      glob: '**/*.{ts,tsx}'
+      run: pnpm lint:fix
+      stage_fixed: true
+      skip:
+        - merge
+        - rebase
+
+commit-msg:
+  commands:
+    # Validate commit message format
+    commit-lint:
+      run: echo "Commit message hook placeholder"
+      skip:
+        - merge
+        - rebase

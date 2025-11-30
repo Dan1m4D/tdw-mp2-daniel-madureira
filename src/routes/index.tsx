@@ -12,7 +12,9 @@ function Home() {
       <div className="space-y-8 max-w-4xl">
         <div className="flex items-center justify-center gap-2">
           <div className="h-1 w-12 bg-primary rounded-full" />
-          <span className="text-primary font-semibold text-sm tracking-widest uppercase">Adventure Awaits</span>
+          <span className="text-primary font-semibold text-sm tracking-widest uppercase">
+            Adventure Awaits
+          </span>
           <div className="h-1 w-12 bg-primary rounded-full" />
         </div>
 
@@ -23,7 +25,8 @@ function Home() {
         </h1>
 
         <p className="text-lg md:text-xl text-center text-base-content/80 leading-relaxed max-w-2xl mx-auto">
-          Embark on a procedural adventure through vibrant cities. Meet unique souls, read the weather, and craft legendary drinks that change destinies.
+          Embark on a procedural adventure through vibrant cities. Meet unique souls, read the
+          weather, and craft legendary drinks that change destinies.
         </p>
 
         <div className="flex items-center justify-center gap-4 pt-4">
@@ -46,19 +49,19 @@ function Home() {
 
       {/* Feature Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl px-4">
-        <FeatureCard 
+        <FeatureCard
           icon={<MapPin size={32} />}
           title="Explore the World"
           description="Travel through real-world locations with dynamic weather, local details, and procedurally-generated storytelling."
           color="primary"
         />
-        <FeatureCard 
+        <FeatureCard
           icon={<Users size={32} />}
           title="Meet Characters"
           description="Encounter AI-generated NPCs with unique personalities, backstories, and meaningful quests tailored to each location."
           color="accent"
         />
-        <FeatureCard 
+        <FeatureCard
           icon={<Wine size={32} />}
           title="Craft Excellence"
           description="Mix real cocktail recipes to fulfill customer desires and unlock new stories, regions, and possibilities."
@@ -67,8 +70,8 @@ function Home() {
       </div>
 
       {/* CTA Button */}
-      <Link 
-        to="/adventure" 
+      <Link
+        to="/adventure"
         className="btn btn-primary btn-lg gap-3 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
       >
         <Zap size={24} />
@@ -95,12 +98,12 @@ function Home() {
   )
 }
 
-function FeatureCard({ 
-  icon, 
-  title, 
-  description, 
-  color 
-}: { 
+function FeatureCard({
+  icon,
+  title,
+  description,
+  color,
+}: {
   icon: React.ReactNode
   title: string
   description: string
@@ -119,11 +122,11 @@ function FeatureCard({
   }
 
   return (
-    <div className={`card bg-linear-to-br ${colorClasses[color]} border border-base-300 hover:shadow-lg transition-all duration-300`}>
+    <div
+      className={`card bg-linear-to-br ${colorClasses[color]} border border-base-300 hover:shadow-lg transition-all duration-300`}
+    >
       <div className="card-body">
-        <div className={`${iconColors[color]} mb-2`}>
-          {icon}
-        </div>
+        <div className={`${iconColors[color]} mb-2`}>{icon}</div>
         <h2 className="card-title text-xl">{title}</h2>
         <p className="text-base-content/70">{description}</p>
       </div>

@@ -31,7 +31,9 @@ function Adventure() {
                 <Compass size={48} className="text-primary/50" />
                 <div className="text-center">
                   <p className="text-base-content/60">Map visualization will appear here</p>
-                  <p className="text-sm text-base-content/40 mt-1">Select a location to start your adventure</p>
+                  <p className="text-sm text-base-content/40 mt-1">
+                    Select a location to start your adventure
+                  </p>
                 </div>
               </div>
             </div>
@@ -44,7 +46,9 @@ function Adventure() {
                   Current Location
                 </h2>
                 <div className="divider my-2" />
-                <p className="text-base-content/70">Start a new run to select a location and begin exploring</p>
+                <p className="text-base-content/70">
+                  Start a new run to select a location and begin exploring
+                </p>
                 <div className="pt-4 space-y-2 text-sm text-base-content/60">
                   <p>• No weather data available</p>
                   <p>• No location selected</p>
@@ -64,9 +68,7 @@ function Adventure() {
                   <Play size={20} />
                   Start New Run
                 </button>
-                <p className="text-xs text-base-content/50 mt-3">
-                  Begin a new adventure journey
-                </p>
+                <p className="text-xs text-base-content/50 mt-3">Begin a new adventure journey</p>
               </div>
             </div>
 
@@ -84,9 +86,7 @@ function Adventure() {
                       <span className="text-2xl">?</span>
                     </div>
                   </div>
-                  <p className="text-base-content/60 italic">
-                    Waiting for a customer...
-                  </p>
+                  <p className="text-base-content/60 italic">Waiting for a customer...</p>
                 </div>
               </div>
             </div>
