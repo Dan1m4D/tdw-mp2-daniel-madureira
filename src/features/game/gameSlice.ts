@@ -10,7 +10,7 @@ const initialState: GameState = {
   inventory: [
     'Rum', 'Gin', 'Tequila', 'Whiskey', 'Vodka', // Common spirits
     'Lime Juice', 'Lemon Juice', 'Orange Juice', // Juices
-    'Simple Syrup', 'Sugar', 'Honey', // Syrups
+    'Simple Syrup', 'Sugar', 'Honey', 'Agave Syrup', // Syrups
     'Fresh Mint', 'Fresh Basil', // Herbs
     'Bitters', 'Vermouth', // Fortified
     'Olive', 'Lemon Peel', 'Orange Peel', // Garnishes

@@ -124,4 +124,123 @@ export const cocktailAPI = {
     )
     return response.data.drinks.map((d) => d.strCategory)
   },
+
+  // Get drinks by category with full details
+  async getDrinksByCategory(category: string): Promise<Drink[]> {
+    try {
+      const response = await axios.get<{ drinks: Array<{ idDrink: string }> | null }>(
+        `${API_BASE}/filter.php?c=${category}`
+      )
+      if (!response.data.drinks) return []
+
+      // Fetch full details for each drink to get ingredients
+      const fullDrinks = await Promise.all(
+        response.data.drinks.map(drink => this.getDrinkById(drink.idDrink))
+      )
+      return fullDrinks
+    } catch (error) {
+      console.error(`Error fetching drinks for category ${category}:`, error)
+      return []
+    }
+  },
+
+  // Get all drinks by fetching from all categories
+  async getAllDrinks(): Promise<Drink[]> {
+    try {
+      const categories = await this.getCategories()
+      const allDrinks = new Map<string, Drink>()
+
+      // Fetch drinks from each category
+      for (const category of categories) {
+        const drinks = await this.getDrinksByCategory(category)
+        drinks.forEach(drink => {
+          allDrinks.set(drink.id, drink)
+        })
+      }
+
+      return Array.from(allDrinks.values())
+    } catch (error) {
+      console.error('Error fetching all drinks:', error)
+      return []
+    }
+  },
+
+  // Get drinks by category for infinite scroll (paginated)
+  async getDrinksByCategoryPaginated(category: string, page: number, pageSize: number = 20): Promise<Drink[]> {
+    try {
+      const response = await axios.get<{ drinks: Array<{ idDrink: string }> | null }>(
+        `${API_BASE}/filter.php?c=${category}`
+      )
+      if (!response.data.drinks) return []
+
+      // Sort and paginate
+      const drinks = response.data.drinks.slice(page * pageSize, (page + 1) * pageSize)
+
+      // Fetch full details for each drink
+      const fullDrinks = await Promise.all(
+        drinks.map(drink => this.getDrinkById(drink.idDrink))
+      )
+      return fullDrinks
+    } catch (error) {
+      console.error(`Error fetching drinks for category ${category}:`, error)
+      return []
+    }
+  },
+
+  // Get all categories for infinite scroll
+  async getAllCategoriesPaginated(): Promise<string[]> {
+    try {
+      const categories = await this.getCategories()
+      return categories
+    } catch (error) {
+      console.error('Error fetching categories:', error)
+      return []
+    }
+  },
+
+  // Get paginated drinks across all categories
+  async getAllDrinksPaginated(pageParam: { categoryIndex: number; page: number } = { categoryIndex: 0, page: 0 }, pageSize: number = 20): Promise<{ drinks: Drink[]; nextPage: { categoryIndex: number; page: number } | null }> {
+    try {
+      const categories = await this.getCategories()
+      let currentCategoryIndex = pageParam.categoryIndex
+      let currentPage = pageParam.page
+      const allDrinks: Drink[] = []
+      const seenIds = new Set<string>()
+
+      // Keep fetching until we have enough drinks or run out of categories
+      while (allDrinks.length < pageSize && currentCategoryIndex < categories.length) {
+        const category = categories[currentCategoryIndex]
+        const categoryDrinks = await this.getDrinksByCategoryPaginated(category, currentPage, pageSize)
+
+        if (categoryDrinks.length === 0) {
+          // Move to next category
+          currentCategoryIndex += 1
+          currentPage = 0
+        } else {
+          // Add unique drinks
+          categoryDrinks.forEach(drink => {
+            if (!seenIds.has(drink.id) && allDrinks.length < pageSize) {
+              seenIds.add(drink.id)
+              allDrinks.push(drink)
+            }
+          })
+
+          if (allDrinks.length < pageSize) {
+            currentPage += 1
+          }
+        }
+      }
+
+      const hasMore = currentCategoryIndex < categories.length
+      const nextPage = hasMore ? { categoryIndex: currentCategoryIndex, page: currentPage } : null
+
+      return {
+        drinks: allDrinks,
+        nextPage,
+      }
+    } catch (error) {
+      console.error('Error fetching paginated drinks:', error)
+      return { drinks: [], nextPage: null }
+    }
+  },
 }

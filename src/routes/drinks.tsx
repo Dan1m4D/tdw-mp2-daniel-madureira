@@ -1,8 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import type { Drink } from '../services/cocktailAPI'
-import { useCocktailSearch } from '../hooks/useCocktails'
+import { useCocktailSearch, useInfiniteAllCocktails } from '../hooks/useCocktails'
 import { Wine, BookOpen, Zap, X, Check } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useAppSelector } from '../app/hooks'
 import type { RootState } from '../app/store'
 
@@ -10,24 +10,170 @@ export const Route = createFileRoute('/drinks')({
   component: DrinksPage,
 })
 
+type SortOption = 'name' | 'missing'
+
 function DrinksPage() {
-  const [searchQuery, setSearchQuery] = useState('margarita') // Default search
+  const [searchQuery, setSearchQuery] = useState('')
   const [selectedDrink, setSelectedDrink] = useState<Drink | null>(null)
-  const { data: drinks, isLoading, error } = useCocktailSearch(searchQuery)
+  const [selectedIngredients, setSelectedIngredients] = useState<Set<string>>(new Set())
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set())
+  const [sortBy, setSortBy] = useState<SortOption>('name')
+  const observerTarget = useRef<HTMLDivElement>(null)
+
+  // Fetch search results if query exists, otherwise use infinite query
+  const searchResults = useCocktailSearch(searchQuery)
+  const infiniteAllDrinks = useInfiniteAllCocktails()
+
+  // Use search results if searching, otherwise use infinite drinks
+  const isSearching = searchQuery.length > 0
+  const { data: searchData, isLoading: searchIsLoading, error: searchError } = searchResults
+  const {
+    data: infiniteData,
+    isLoading: infiniteIsLoading,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = infiniteAllDrinks
+
+  // Combine all paginated drinks
+  const allInfiniteDrinks = useMemo(() => {
+    if (!infiniteData) return []
+    return infiniteData.pages.flatMap(page => page.drinks)
+  }, [infiniteData])
+
+  // Choose data based on search state
+  const drinks = isSearching ? searchData : allInfiniteDrinks
+  const isLoading = isSearching ? searchIsLoading : infiniteIsLoading
+  const error = isSearching ? searchError : null
+
   const playerInventory = useAppSelector((state: RootState) => state.game.inventory)
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
     const query = formData.get('search') as string
-    if (query.trim()) {
-      setSearchQuery(query)
-    }
+    setSearchQuery(query.trim())
+    setSelectedIngredients(new Set()) // Reset filters
   }
 
   const closeDrawer = () => {
     setSelectedDrink(null)
   }
+
+  // Get all unique ingredients from drinks
+  const allIngredients = useMemo(() => {
+    if (!drinks) return []
+    const ingredientsSet = new Set<string>()
+    drinks.forEach(drink => {
+      drink.ingredients.forEach(ing => {
+        ingredientsSet.add(ing.name)
+      })
+    })
+    return Array.from(ingredientsSet).sort()
+  }, [drinks])
+
+  // Get all unique categories from drinks
+  const allCategories = useMemo(() => {
+    if (!drinks) return []
+    const categoriesSet = new Set<string>()
+    drinks.forEach(drink => {
+      categoriesSet.add(drink.category)
+    })
+    return Array.from(categoriesSet).sort()
+  }, [drinks])
+
+  // Toggle ingredient filter
+  const toggleIngredientFilter = (ingredient: string) => {
+    const newSet = new Set(selectedIngredients)
+    if (newSet.has(ingredient)) {
+      newSet.delete(ingredient)
+    } else {
+      newSet.add(ingredient)
+    }
+    setSelectedIngredients(newSet)
+  }
+
+  // Toggle category filter
+  const toggleCategoryFilter = (category: string) => {
+    const newSet = new Set(selectedCategories)
+    if (newSet.has(category)) {
+      newSet.delete(category)
+    } else {
+      newSet.add(category)
+    }
+    setSelectedCategories(newSet)
+  }
+
+  // Filter and sort drinks
+  const filteredAndSortedDrinks = useMemo(() => {
+    if (!drinks) return []
+
+    // Filter by selected ingredients (must contain ALL selected ingredients) and categories
+    const result = drinks.filter(drink => {
+      // Filter by ingredients
+      if (selectedIngredients.size > 0) {
+        const hasAllIngredients = Array.from(selectedIngredients).every(selectedIng =>
+          drink.ingredients.some(drinkIng =>
+            drinkIng.name.toLowerCase() === selectedIng.toLowerCase()
+          )
+        )
+        if (!hasAllIngredients) return false
+      }
+
+      // Filter by category
+      if (selectedCategories.size > 0) {
+        if (!selectedCategories.has(drink.category)) return false
+      }
+
+      return true
+    })
+
+    // Sort
+    if (sortBy === 'name') {
+      result.sort((a, b) => a.name.localeCompare(b.name))
+    } else if (sortBy === 'missing') {
+      result.sort((a, b) => {
+        const aCount = a.ingredients.filter(ing =>
+          !playerInventory.some((inv: string) => inv.toLowerCase() === ing.name.toLowerCase())
+        ).length
+        const bCount = b.ingredients.filter(ing =>
+          !playerInventory.some((inv: string) => inv.toLowerCase() === ing.name.toLowerCase())
+        ).length
+        return aCount - bCount
+      })
+    }
+
+    return result
+  }, [drinks, selectedIngredients, selectedCategories, sortBy, playerInventory])
+
+  // Infinite scroll observer
+  const handleIntersection = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage && !isSearching) {
+      fetchNextPage()
+    }
+  }, [hasNextPage, isFetchingNextPage, isSearching, fetchNextPage])
+
+  useEffect(() => {
+    const target = observerTarget.current
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting) {
+          handleIntersection()
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    if (target) {
+      observer.observe(target)
+    }
+
+    return () => {
+      if (target) {
+        observer.unobserve(target)
+      }
+    }
+  }, [handleIntersection])
 
   return (
     <div className="min-h-[calc(100vh-120px)] py-12 px-4">
@@ -86,21 +232,125 @@ function DrinksPage() {
         {/* Stats Bar */}
         {drinks && drinks.length > 0 && (
           <div className="grid grid-cols-3 gap-4 mb-12">
-            <StatsCard icon={<BookOpen size={24} />} label="Recipes" value={drinks.length} />
+            <StatsCard icon={<BookOpen size={24} />} label="Recipes" value={filteredAndSortedDrinks.length} />
             <StatsCard icon={<Wine size={24} />} label="Category" value={drinks[0]?.category || 'N/A'} />
             <StatsCard icon={<Zap size={24} />} label="Ingredients" value={drinks[0]?.ingredients.length || 0} />
           </div>
         )}
 
-        {/* Drinks Grid */}
+        {/* Filter & Sort Section */}
         {drinks && drinks.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {drinks.map((drink, index) => (
-              <div key={drink.id} onClick={() => setSelectedDrink(drink)} className="block">
-                <DrinkCard drink={drink} index={index} />
+          <div className="mb-12 space-y-6 bg-base-100 border-2 border-base-content/10 rounded-lg p-6">
+            {/* Sort Options */}
+            <div>
+              <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                <Zap size={20} />
+                Sort By
+              </h3>
+              <div className="flex gap-3 flex-wrap">
+                <button
+                  onClick={() => setSortBy('name')}
+                  className={`btn btn-sm ${sortBy === 'name' ? 'btn-primary' : 'btn-outline'}`}
+                >
+                  Name (A-Z)
+                </button>
+                <button
+                  onClick={() => setSortBy('missing')}
+                  className={`btn btn-sm ${sortBy === 'missing' ? 'btn-primary' : 'btn-outline'}`}
+                >
+                  Missing Ingredients
+                </button>
               </div>
-            ))}
+            </div>
+
+            {/* Category Filter */}
+            {allCategories.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-lg mb-3">Filter by Category</h3>
+                <div className="flex gap-2 flex-wrap">the cards to show the difficulty, image and names, and when you 
+                  {allCategories.map(category => (
+                    <button
+                      key={category}
+                      onClick={() => toggleCategoryFilter(category)}
+                      className={`badge badge-lg cursor-pointer transition-all ${
+                        selectedCategories.has(category)
+                          ? 'badge-primary'
+                          : 'badge-outline'
+                      }`}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+                {selectedCategories.size > 0 && (
+                  <button
+                    onClick={() => setSelectedCategories(new Set())}
+                    className="btn btn-sm btn-outline mt-3"
+                  >
+                    Clear Category Filters
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Ingredient Filter */}
+            {allIngredients.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-lg mb-3">Filter by Ingredients</h3>
+                <div className="flex gap-2 flex-wrap">
+                  {allIngredients.map(ingredient => (
+                    <button
+                      key={ingredient}
+                      onClick={() => toggleIngredientFilter(ingredient)}
+                      className={`badge badge-lg cursor-pointer transition-all ${
+                        selectedIngredients.has(ingredient)
+                          ? 'badge-primary'
+                          : 'badge-outline'
+                      }`}
+                    >
+                      {ingredient}
+                    </button>
+                  ))}
+                </div>
+                {selectedIngredients.size > 0 && (
+                  <button
+                    onClick={() => setSelectedIngredients(new Set())}
+                    className="btn btn-sm btn-outline mt-3"
+                  >
+                    Clear Ingredient Filters
+                  </button>
+                )}
+              </div>
+            )}
           </div>
+        )}
+        {drinks && drinks.length > 0 && (
+          <>
+            {filteredAndSortedDrinks.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-base-content/60 text-lg">No cocktails match your filters. Try adjusting your selection!</p>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredAndSortedDrinks.map((drink, index) => (
+                    <div key={drink.id} onClick={() => setSelectedDrink(drink)} className="block">
+                      <DrinkCard drink={drink} index={index} />
+                    </div>
+                  ))}
+                </div>
+
+                {/* Infinite Scroll Observer */}
+                <div ref={observerTarget} className="flex justify-center py-8">
+                  {isFetchingNextPage ? (
+                    <span className="loading loading-spinner loading-lg text-primary"></span>
+                  ) : filteredAndSortedDrinks.length > 0 && !isSearching && hasNextPage === false ? (
+                    <p className="text-base-content/60 text-sm">No more cocktails to load</p>
+                  ) : null}
+                </div>
+              </>
+            )}
+          </>
         )}
 
         {/* Drink Detail Drawer */}
