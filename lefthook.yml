@@ -7,7 +7,7 @@ pre-commit:
     # Type checking
     type-check:
       glob: '**/*.{ts,tsx}'
-      run: pnpm type-check
+      run: npx pnpm type-check
       stage_fixed: true
       skip:
         - merge
@@ -16,7 +16,7 @@ pre-commit:
     # Code formatting with Prettier
     prettier:
       glob: '**/*.{ts,tsx,json,md,css,html}'
-      run: pnpm prettier:fix
+      run: npx pnpm prettier:fix
       stage_fixed: true
       skip:
         - merge
@@ -25,7 +25,7 @@ pre-commit:
     # Linting with ESLint
     eslint:
       glob: '**/*.{ts,tsx}'
-      run: pnpm lint:fix
+      run: npx pnpm lint:fix
       stage_fixed: true
       skip:
         - merge

@@ -15,9 +15,7 @@ export function NPCInformation() {
               <span className="text-2xl">?</span>
             </div>
           </div>
-          <p className="text-base-content/60 italic">
-            Waiting for a customer...
-          </p>
+          <p className="text-base-content/60 italic">Waiting for a customer...</p>
         </div>
       </div>
     </div>
