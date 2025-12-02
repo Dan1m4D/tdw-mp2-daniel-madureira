@@ -12,6 +12,8 @@ import {
 } from '../features/adventure/adventureSlice'
 import { type AppDispatch, type RootState } from '../app/store'
 import { type Coordinate } from '../services/routingAPI'
+import { getWeather } from '../services/weatherAPI'
+import { generateNPC, generateNewNPCFromWeather } from '../features/npc/npcSlice'
 
 export const Route = createFileRoute('/adventure')({
   component: Adventure,
@@ -23,9 +25,17 @@ function Adventure() {
   const [showLocationModal, setShowLocationModal] = useState(false)
   const [selectingFor, setSelectingFor] = useState<'start' | 'end' | null>(null)
 
-  const handleLocationSelect = (location: Coordinate) => {
+  const handleLocationSelect = async (location: Coordinate) => {
     if (selectingFor === 'start') {
       dispatch(setStartLocation(location))
+      // Fetch weather and generate NPC for start location
+      try {
+        const weather = await getWeather(location.latitude, location.longitude)
+        const npc = generateNPC(weather, location.name || 'Unknown Location')
+        dispatch(generateNewNPCFromWeather(npc))
+      } catch (error) {
+        console.error('Failed to fetch weather:', error)
+      }
     } else if (selectingFor === 'end') {
       dispatch(setEndLocation(location))
     }
