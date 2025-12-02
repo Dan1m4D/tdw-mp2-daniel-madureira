@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { Compass, Home, Map as MapIcon, Moon, Sun } from 'lucide-react'
-import { useTheme } from '../app/theme/useTheme'
+import { useTheme } from '../../app/theme/useTheme'
 
 export function Navbar() {
   const { theme, toggleTheme } = useTheme()

@@ -1,2 +1,5 @@
-export { Navbar } from './Navbar'
-export { Footer } from './Footer'
+export { Navbar } from './layout/Navbar'
+export { Footer } from './layout/Footer'
+export { MapView } from './MapView'
+export { LocationDetails } from './LocationDetails'
+export { NPCInformation } from './NPCInformation'
