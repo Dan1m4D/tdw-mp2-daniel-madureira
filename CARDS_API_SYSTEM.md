@@ -22,12 +22,12 @@ Provides the following functions:
 
 Cards are mapped to ingredients based on their suit:
 
-| Suit   | Category | Examples |
-|--------|----------|----------|
-| Spades (♠) | Spirits | Rum, Gin, Tequila, Whiskey, Vodka, etc. (13 spirits) |
-| Hearts (♥) | Juices & Mixers | Lime Juice, Lemon Juice, Orange Juice, Cola, etc. (13 juices) |
-| Diamonds (♦) | Syrups & Sweeteners | Simple Syrup, Honey, Agave Syrup, Coffee Liqueur, etc. (13 syrups) |
-| Clubs (♣) | Herbs, Spices & Bitters | Fresh Mint, Fresh Basil, Bitters, Vermouth, etc. (13 herbs) |
+| Suit          | Category                | Examples                                                           |
+| ------------- | ----------------------- | ------------------------------------------------------------------ |
+| Spades (♠)   | Spirits                 | Rum, Gin, Tequila, Whiskey, Vodka, etc. (13 spirits)               |
+| Hearts (♥)   | Juices & Mixers         | Lime Juice, Lemon Juice, Orange Juice, Cola, etc. (13 juices)      |
+| Diamonds (♦) | Syrups & Sweeteners     | Simple Syrup, Honey, Agave Syrup, Coffee Liqueur, etc. (13 syrups) |
+| Clubs (♣)    | Herbs, Spices & Bitters | Fresh Mint, Fresh Basil, Bitters, Vermouth, etc. (13 herbs)        |
 
 **Total:** 52 unique ingredients (4 suits × 13 cards)
 
@@ -36,6 +36,7 @@ Cards are mapped to ingredients based on their suit:
 #### Adventure Slice (`src/features/adventure/adventureSlice.ts`)
 
 **New State Properties:**
+
 ```typescript
 deckId: string | null                    // Current deck ID
 currentStopIndex: number                 // Index of current stop (0-3)
@@ -62,6 +63,7 @@ Interactive component for drawing cards at each stop:
 ```
 
 **Features:**
+
 - Shows current stop number (e.g., "Stop 1 of 3")
 - Draw button triggers card drawing
 - Displays card image with suit and value
@@ -117,9 +119,11 @@ Card draw disabled
 **Endpoints Used:**
 
 1. **Create Deck**
+
    ```
    GET /new/shuffle/
    ```
+
    Returns: `{ success: true, deck_id: "...", shuffled: true, remaining: 52 }`
 
 2. **Draw Card**
@@ -150,7 +154,7 @@ const ingredient = cardToIngredient(card)
 // ingredient = "Rum"
 
 // 4. Add to inventory
-dispatch(addIngredient("Rum"))
+dispatch(addIngredient('Rum'))
 ```
 
 ## Usage Example
@@ -166,9 +170,7 @@ function Adventure() {
   return (
     <>
       {/* Show CardDraw when adventure is active and deck exists */}
-      {adventure.status !== 'idle' && adventure.deckId && (
-        <CardDraw />
-      )}
+      {adventure.status !== 'idle' && adventure.deckId && <CardDraw />}
     </>
   )
 }
@@ -196,27 +198,32 @@ const handleDraw = async () => {
 ## Features & Capabilities
 
 ✅ **Deck Management**
+
 - Single deck per adventure
 - Automatic reset on new adventure
 - Tracks remaining cards (52 total)
 
 ✅ **Card Drawing**
+
 - Draw one or multiple cards
 - Cards cannot be drawn twice (deck mechanism)
 - Automatic card-to-ingredient mapping
 
 ✅ **Inventory Integration**
+
 - Auto-adds ingredients to Redux store
 - Prevents duplicate ingredients (handled by game slice)
 - Persists through adventure progression
 
 ✅ **UI/UX**
+
 - Card image display with Tailwind styling
 - Stop progress indicator
 - Loading states during API calls
 - Error handling with user-friendly messages
 
 ✅ **Future Enhancements**
+
 - Draw multiple cards per stop
 - Random ingredient selection (not just cards)
 - Card rarity system (common, rare, legendary)
@@ -283,10 +290,12 @@ console.log(cardToIngredient(card)) // "Rum", "Mint", etc.
 ## Files Modified/Created
 
 ### New Files
+
 - `src/services/cardsAPI.ts` - Cards API service
 - `src/components/CardDraw.tsx` - Card drawing UI component
 
 ### Modified Files
+
 - `src/features/adventure/adventureSlice.ts` - Added deck state & thunks
 - `src/routes/adventure.tsx` - Integrated CardDraw component
 - `src/components/index.ts` - Exported CardDraw
