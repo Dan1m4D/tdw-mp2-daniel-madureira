@@ -101,6 +101,22 @@ export async function createDeck(): Promise<string> {
 }
 
 /**
+ * Reshuffle a deck
+ */
+export async function reshuffleDeck(deckId: string): Promise<DeckResponse> {
+  try {
+    const response = await axios.get<DeckResponse>(`${DECK_API}/${deckId}/shuffle/`)
+    if (!response.data.success) {
+      throw new Error('Failed to reshuffle deck')
+    }
+    return response.data
+  } catch (error) {
+    console.error('Deck reshuffle error:', error)
+    throw new Error('Failed to reshuffle deck')
+  }
+}
+
+/**
  * Draw a card from the deck
  */
 export async function drawCard(deckId: string): Promise<Card> {
