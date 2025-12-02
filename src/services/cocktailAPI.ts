@@ -89,17 +89,13 @@ export const cocktailAPI = {
 
   // Get random drink
   async getRandomDrink(): Promise<Drink> {
-    const response = await axios.get<{ drinks: CocktailData[] }>(
-      `${API_BASE}/random.php`
-    )
+    const response = await axios.get<{ drinks: CocktailData[] }>(`${API_BASE}/random.php`)
     return transformCocktail(response.data.drinks[0])
   },
 
   // Get drink by ID
   async getDrinkById(id: string): Promise<Drink> {
-    const response = await axios.get<{ drinks: CocktailData[] }>(
-      `${API_BASE}/lookup.php?i=${id}`
-    )
+    const response = await axios.get<{ drinks: CocktailData[] }>(`${API_BASE}/lookup.php?i=${id}`)
     return transformCocktail(response.data.drinks[0])
   },
 
@@ -122,7 +118,7 @@ export const cocktailAPI = {
     const response = await axios.get<{ drinks: Array<{ strCategory: string }> }>(
       `${API_BASE}/list.php?c=list`
     )
-    return response.data.drinks.map((d) => d.strCategory)
+    return response.data.drinks.map(d => d.strCategory)
   },
 
   // Get drinks by category with full details
@@ -166,7 +162,11 @@ export const cocktailAPI = {
   },
 
   // Get drinks by category for infinite scroll (paginated)
-  async getDrinksByCategoryPaginated(category: string, page: number, pageSize: number = 20): Promise<Drink[]> {
+  async getDrinksByCategoryPaginated(
+    category: string,
+    page: number,
+    pageSize: number = 20
+  ): Promise<Drink[]> {
     try {
       const response = await axios.get<{ drinks: Array<{ idDrink: string }> | null }>(
         `${API_BASE}/filter.php?c=${category}`
@@ -177,9 +177,7 @@ export const cocktailAPI = {
       const drinks = response.data.drinks.slice(page * pageSize, (page + 1) * pageSize)
 
       // Fetch full details for each drink
-      const fullDrinks = await Promise.all(
-        drinks.map(drink => this.getDrinkById(drink.idDrink))
-      )
+      const fullDrinks = await Promise.all(drinks.map(drink => this.getDrinkById(drink.idDrink)))
       return fullDrinks
     } catch (error) {
       console.error(`Error fetching drinks for category ${category}:`, error)
@@ -199,7 +197,10 @@ export const cocktailAPI = {
   },
 
   // Get paginated drinks across all categories
-  async getAllDrinksPaginated(pageParam: { categoryIndex: number; page: number } = { categoryIndex: 0, page: 0 }, pageSize: number = 20): Promise<{ drinks: Drink[]; nextPage: { categoryIndex: number; page: number } | null }> {
+  async getAllDrinksPaginated(
+    pageParam: { categoryIndex: number; page: number } = { categoryIndex: 0, page: 0 },
+    pageSize: number = 20
+  ): Promise<{ drinks: Drink[]; nextPage: { categoryIndex: number; page: number } | null }> {
     try {
       const categories = await this.getCategories()
       let currentCategoryIndex = pageParam.categoryIndex
@@ -210,7 +211,11 @@ export const cocktailAPI = {
       // Keep fetching until we have enough drinks or run out of categories
       while (allDrinks.length < pageSize && currentCategoryIndex < categories.length) {
         const category = categories[currentCategoryIndex]
-        const categoryDrinks = await this.getDrinksByCategoryPaginated(category, currentPage, pageSize)
+        const categoryDrinks = await this.getDrinksByCategoryPaginated(
+          category,
+          currentPage,
+          pageSize
+        )
 
         if (categoryDrinks.length === 0) {
           // Move to next category

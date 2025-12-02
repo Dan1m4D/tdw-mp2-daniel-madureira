@@ -37,7 +37,7 @@ jobs:
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           working-directory: ./
-          production: true
+          vercel-args: '--prod'
 
       - name: Deployment summary
         if: success()

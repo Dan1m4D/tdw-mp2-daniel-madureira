@@ -57,7 +57,7 @@ export function useInfiniteAllCocktails() {
     queryKey: ['cocktails', 'infinite', 'all'],
     queryFn: ({ pageParam }) => cocktailAPI.getAllDrinksPaginated(pageParam),
     initialPageParam: { categoryIndex: 0, page: 0 },
-    getNextPageParam: (lastPage) => lastPage.nextPage,
+    getNextPageParam: lastPage => lastPage.nextPage,
     staleTime: 1000 * 60 * 30, // 30 minutes
   })
 }
