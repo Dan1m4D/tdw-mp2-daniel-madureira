@@ -1,10 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Crimson+Text:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap');
-@import "tailwindcss";
+@import 'tailwindcss';
 @plugin "daisyui";
 
 /* Light Theme */
 @plugin "daisyui/theme" {
-  name: "wanderer";
+  name: 'wanderer';
   default: true;
   prefersdark: false;
   color-scheme: light;
@@ -64,7 +64,7 @@
 
 /* Dark Theme */
 @plugin "daisyui/theme" {
-  name: "wanderer-dark";
+  name: 'wanderer-dark';
   default: false;
   prefersdark: true;
   color-scheme: dark;
@@ -123,18 +123,33 @@
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-12px); }
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
 }
 
 @keyframes glow {
-  0%, 100% { box-shadow: 0 0 8px rgba(212, 165, 116, 0.4); }
-  50% { box-shadow: 0 0 20px rgba(212, 165, 116, 0.7); }
+  0%,
+  100% {
+    box-shadow: 0 0 8px rgba(212, 165, 116, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(212, 165, 116, 0.7);
+  }
 }
 
 @keyframes shimmer {
-  0%, 100% { opacity: 0.7; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 @keyframes fade-in-up {
@@ -156,14 +171,21 @@ html {
   scroll-behavior: smooth;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: 'Playfair Display', serif;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
 /* Display headings with Playfair */
-.text-6xl, .text-7xl, .text-5xl {
+.text-6xl,
+.text-7xl,
+.text-5xl {
   font-family: 'Playfair Display', serif;
 }
 

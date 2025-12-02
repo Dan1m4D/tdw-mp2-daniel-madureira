@@ -40,9 +40,7 @@ function Adventure() {
                   <Play size={20} />  
                   Start New Run
                 </button>
-                <p className="text-xs text-base-content/50 mt-3">
-                  Begin a new adventure journey
-                </p>
+                <p className="text-xs text-base-content/50 mt-3">Begin a new adventure journey</p>
               </div>
             </div>
 

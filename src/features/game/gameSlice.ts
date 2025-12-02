@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice } from '@reduxjs/toolkit'
 
 interface GameState {
   status: 'idle' | 'playing' | 'finished';
@@ -33,7 +33,7 @@ export const gameSlice = createSlice({
       state.inventory = state.inventory.filter((ing) => ing !== action.payload);
     },
   },
-});
+})
 
 export const { startGame, addIngredient, removeIngredient } = gameSlice.actions;
 export default gameSlice.reducer;

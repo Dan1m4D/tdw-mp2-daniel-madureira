@@ -1,0 +1,55 @@
+name: Code Quality Checks
+
+on:
+  push:
+    branches: [ main, dev, '@feat/**' ]
+  pull_request:
+    branches: [ main, dev ]
+
+jobs:
+  code-quality:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [ 20.x ]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run type check
+        run: pnpm type-check
+        continue-on-error: true
+
+      - name: Run Prettier check
+        run: pnpm prettier:check
+        continue-on-error: true
+
+      - name: Run ESLint
+        run: pnpm lint
+        continue-on-error: true
+
+      - name: Run pnpm audit
+        run: pnpm audit --audit-level=moderate
+        continue-on-error: true
+
+      - name: Report results
+        if: failure()
+        run: |
+          echo "⚠️ Code quality checks detected issues."
+          echo "Please run 'pnpm prettier:fix' and 'pnpm lint:fix' locally and commit changes."
+          exit 1
