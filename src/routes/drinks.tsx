@@ -113,8 +113,8 @@ function DrinksPage() {
       // Filter by ingredients
       if (selectedIngredients.size > 0) {
         const hasAllIngredients = Array.from(selectedIngredients).every(selectedIng =>
-          drink.ingredients.some(drinkIng =>
-            drinkIng.name.toLowerCase() === selectedIng.toLowerCase()
+          drink.ingredients.some(
+            drinkIng => drinkIng.name.toLowerCase() === selectedIng.toLowerCase()
           )
         )
         if (!hasAllIngredients) return false
@@ -133,11 +133,13 @@ function DrinksPage() {
       result.sort((a, b) => a.name.localeCompare(b.name))
     } else if (sortBy === 'missing') {
       result.sort((a, b) => {
-        const aCount = a.ingredients.filter(ing =>
-          !playerInventory.some((inv: string) => inv.toLowerCase() === ing.name.toLowerCase())
+        const aCount = a.ingredients.filter(
+          ing =>
+            !playerInventory.some((inv: string) => inv.toLowerCase() === ing.name.toLowerCase())
         ).length
-        const bCount = b.ingredients.filter(ing =>
-          !playerInventory.some((inv: string) => inv.toLowerCase() === ing.name.toLowerCase())
+        const bCount = b.ingredients.filter(
+          ing =>
+            !playerInventory.some((inv: string) => inv.toLowerCase() === ing.name.toLowerCase())
         ).length
         return aCount - bCount
       })
@@ -178,17 +180,23 @@ function DrinksPage() {
   return (
     <div className="min-h-[calc(100vh-120px)] py-12 px-4">
       {/* Background texture */}
-      <div className="fixed inset-0 pointer-events-none opacity-5 mix-blend-multiply" 
-        style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 2px, currentColor 2px, currentColor 4px)' }}
+      <div
+        className="fixed inset-0 pointer-events-none opacity-5 mix-blend-multiply"
+        style={{
+          backgroundImage:
+            'repeating-linear-gradient(90deg, transparent, transparent 2px, currentColor 2px, currentColor 4px)',
+        }}
       />
-      
+
       <div className="max-w-6xl mx-auto relative z-10">
         {/* Header with worn notebook style */}
         <div className="mb-12 text-center">
           <div className="inline-block mb-6 p-6 bg-base-100 border-4 border-base-content/20 rounded-xl shadow-xl transform -rotate-1">
             <Wine size={48} className="text-primary mx-auto mb-3" />
             <h1 className="text-5xl font-bold font-serif mb-2">Cocktail Compendium</h1>
-            <p className="text-base-content/70 italic">A bartender's collected recipes from around the world</p>
+            <p className="text-base-content/70 italic">
+              A bartender's collected recipes from around the world
+            </p>
           </div>
         </div>
 
@@ -225,16 +233,30 @@ function DrinksPage() {
         {/* No Results */}
         {!isLoading && !error && (!drinks || drinks.length === 0) && (
           <div className="text-center py-12">
-            <p className="text-base-content/60 text-lg">No cocktails found. Try a different search!</p>
+            <p className="text-base-content/60 text-lg">
+              No cocktails found. Try a different search!
+            </p>
           </div>
         )}
 
         {/* Stats Bar */}
         {drinks && drinks.length > 0 && (
           <div className="grid grid-cols-3 gap-4 mb-12">
-            <StatsCard icon={<BookOpen size={24} />} label="Recipes" value={filteredAndSortedDrinks.length} />
-            <StatsCard icon={<Wine size={24} />} label="Category" value={drinks[0]?.category || 'N/A'} />
-            <StatsCard icon={<Zap size={24} />} label="Ingredients" value={drinks[0]?.ingredients.length || 0} />
+            <StatsCard
+              icon={<BookOpen size={24} />}
+              label="Recipes"
+              value={filteredAndSortedDrinks.length}
+            />
+            <StatsCard
+              icon={<Wine size={24} />}
+              label="Category"
+              value={drinks[0]?.category || 'N/A'}
+            />
+            <StatsCard
+              icon={<Zap size={24} />}
+              label="Ingredients"
+              value={drinks[0]?.ingredients.length || 0}
+            />
           </div>
         )}
 
@@ -267,15 +289,14 @@ function DrinksPage() {
             {allCategories.length > 0 && (
               <div>
                 <h3 className="font-semibold text-lg mb-3">Filter by Category</h3>
-                <div className="flex gap-2 flex-wrap">the cards to show the difficulty, image and names, and when you 
+                <div className="flex gap-2 flex-wrap">
+                  the cards to show the difficulty, image and names, and when you
                   {allCategories.map(category => (
                     <button
                       key={category}
                       onClick={() => toggleCategoryFilter(category)}
                       className={`badge badge-lg cursor-pointer transition-all ${
-                        selectedCategories.has(category)
-                          ? 'badge-primary'
-                          : 'badge-outline'
+                        selectedCategories.has(category) ? 'badge-primary' : 'badge-outline'
                       }`}
                     >
                       {category}
@@ -303,9 +324,7 @@ function DrinksPage() {
                       key={ingredient}
                       onClick={() => toggleIngredientFilter(ingredient)}
                       className={`badge badge-lg cursor-pointer transition-all ${
-                        selectedIngredients.has(ingredient)
-                          ? 'badge-primary'
-                          : 'badge-outline'
+                        selectedIngredients.has(ingredient) ? 'badge-primary' : 'badge-outline'
                       }`}
                     >
                       {ingredient}
@@ -328,7 +347,9 @@ function DrinksPage() {
           <>
             {filteredAndSortedDrinks.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-base-content/60 text-lg">No cocktails match your filters. Try adjusting your selection!</p>
+                <p className="text-base-content/60 text-lg">
+                  No cocktails match your filters. Try adjusting your selection!
+                </p>
               </div>
             ) : (
               <>
@@ -344,7 +365,9 @@ function DrinksPage() {
                 <div ref={observerTarget} className="flex justify-center py-8">
                   {isFetchingNextPage ? (
                     <span className="loading loading-spinner loading-lg text-primary"></span>
-                  ) : filteredAndSortedDrinks.length > 0 && !isSearching && hasNextPage === false ? (
+                  ) : filteredAndSortedDrinks.length > 0 &&
+                    !isSearching &&
+                    hasNextPage === false ? (
                     <p className="text-base-content/60 text-sm">No more cocktails to load</p>
                   ) : null}
                 </div>
@@ -394,9 +417,15 @@ function DrinkCard({ drink, index }: DrinkCardProps) {
   const rotation = rotations[index % rotations.length]
 
   return (
-    <div className={`card bg-base-100 border-3 border-base-content/20 shadow-lg hover:shadow-xl transition-all hover:scale-105 cursor-pointer h-full ${rotation}`}>
-      <div className="absolute inset-0 opacity-5 pointer-events-none" 
-        style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, currentColor 10px, currentColor 20px)' }}
+    <div
+      className={`card bg-base-100 border-3 border-base-content/20 shadow-lg hover:shadow-xl transition-all hover:scale-105 cursor-pointer h-full ${rotation}`}
+    >
+      <div
+        className="absolute inset-0 opacity-5 pointer-events-none"
+        style={{
+          backgroundImage:
+            'repeating-linear-gradient(45deg, transparent, transparent 10px, currentColor 10px, currentColor 20px)',
+        }}
       />
 
       <div className="card-body relative z-10 space-y-3">
@@ -416,9 +445,11 @@ function DrinkCard({ drink, index }: DrinkCardProps) {
         <p className="text-sm text-base-content/70 line-clamp-2 italic">"{drink.instructions}"</p>
 
         <div className="bg-base-200/50 rounded p-3 border border-base-300/50">
-          <p className="text-xs font-semibold text-base-content/80 mb-2">Ingredients ({drink.ingredients.length}):</p>
+          <p className="text-xs font-semibold text-base-content/80 mb-2">
+            Ingredients ({drink.ingredients.length}):
+          </p>
           <ul className="text-xs text-base-content/70 space-y-1">
-            {drink.ingredients.slice(0, 3).map((ingredient) => (
+            {drink.ingredients.slice(0, 3).map(ingredient => (
               <li key={ingredient.name}>
                 • {ingredient.name} {ingredient.measure ? `- ${ingredient.measure}` : ''}
               </li>
@@ -455,20 +486,14 @@ function DrinkDetailDrawer({ drink, playerInventory, onClose }: DrinkDetailDrawe
   return (
     <>
       {/* Backdrop */}
-      <div 
-        className="fixed inset-0 bg-black/50 z-40 transition-opacity"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 bg-black/50 z-40 transition-opacity" onClick={onClose} />
 
       {/* Drawer from right */}
       <div className="fixed right-0 top-0 h-full w-full max-w-lg bg-base-100 shadow-2xl z-50 overflow-y-auto">
         {/* Close button */}
         <div className="sticky top-0 flex items-center justify-between p-4 bg-base-100 border-b border-base-300">
           <h2 className="text-2xl font-serif font-bold text-primary">{drink.name}</h2>
-          <button 
-            onClick={onClose}
-            className="btn btn-ghost btn-circle btn-sm"
-          >
+          <button onClick={onClose} className="btn btn-ghost btn-circle btn-sm">
             <X size={24} />
           </button>
         </div>
@@ -516,8 +541,8 @@ function DrinkDetailDrawer({ drink, playerInventory, onClose }: DrinkDetailDrawe
                   {canCraft ? '✓ You can craft this!' : '⚠ Missing ingredients'}
                 </h4>
                 <p className="text-sm opacity-90">
-                  {canCraft 
-                    ? 'All ingredients are in your inventory.' 
+                  {canCraft
+                    ? 'All ingredients are in your inventory.'
                     : `You're missing ${drinkIngredients.filter(i => !i.has).length} ingredient(s)`}
                 </p>
               </div>
@@ -526,26 +551,35 @@ function DrinkDetailDrawer({ drink, playerInventory, onClose }: DrinkDetailDrawe
 
           {/* Ingredients List */}
           <div>
-            <h3 className="font-semibold text-lg mb-3 font-serif">Recipe ({drinkIngredients.length} ingredients)</h3>
+            <h3 className="font-semibold text-lg mb-3 font-serif">
+              Recipe ({drinkIngredients.length} ingredients)
+            </h3>
             <div className="space-y-2">
-              {drinkIngredients.map((ingredient) => (
-                <div key={ingredient.name} className={`flex items-center gap-3 p-3 rounded border-2 ${
-                  ingredient.has 
-                    ? 'bg-success/10 border-success/30' 
-                    : 'bg-warning/10 border-warning/30'
-                }`}>
+              {drinkIngredients.map(ingredient => (
+                <div
+                  key={ingredient.name}
+                  className={`flex items-center gap-3 p-3 rounded border-2 ${
+                    ingredient.has
+                      ? 'bg-success/10 border-success/30'
+                      : 'bg-warning/10 border-warning/30'
+                  }`}
+                >
                   <div className={`shrink-0 ${ingredient.has ? 'text-success' : 'text-warning'}`}>
                     {ingredient.has ? <Check size={20} /> : <X size={20} />}
                   </div>
                   <div className="flex-1">
-                    <p className={`font-medium ${ingredient.has ? 'text-success' : 'text-warning'}`}>
+                    <p
+                      className={`font-medium ${ingredient.has ? 'text-success' : 'text-warning'}`}
+                    >
                       {ingredient.name}
                     </p>
                     {ingredient.measure && (
                       <p className="text-xs text-base-content/60">{ingredient.measure}</p>
                     )}
                   </div>
-                  <span className={`text-xs font-semibold ${ingredient.has ? 'text-success' : 'text-warning'}`}>
+                  <span
+                    className={`text-xs font-semibold ${ingredient.has ? 'text-success' : 'text-warning'}`}
+                  >
                     {ingredient.has ? 'Have' : 'Missing'}
                   </span>
                 </div>
@@ -562,4 +596,3 @@ function DrinkDetailDrawer({ drink, playerInventory, onClose }: DrinkDetailDrawe
     </>
   )
 }
-
