@@ -2,12 +2,13 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { Play, Wine, MapPin, AlertCircle, CheckCircle } from 'lucide-react'
 import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { MapView, LocationDetails, NPCInformation, LocationSelector } from '../components'
+import { MapView, LocationDetails, NPCInformation, LocationSelector, CardDraw } from '../components'
 import {
   setStartLocation,
   setEndLocation,
   calculateRoute,
   resetAdventure,
+  initializeDeck,
   type AdventureState,
 } from '../features/adventure/adventureSlice'
 import { type AppDispatch, type RootState } from '../app/store'
@@ -54,6 +55,8 @@ function Adventure() {
         numStops: 3,
       })
     )
+    // Initialize deck for card drawing
+    dispatch(initializeDeck())
   }
 
   const formatDistance = (meters: number) => {
@@ -319,6 +322,9 @@ function Adventure() {
 
             {/* NPC Information */}
             <NPCInformation />
+
+            {/* Card Draw */}
+            {adventure.status !== 'idle' && adventure.deckId && <CardDraw />}
 
             {/* Drink Crafting */}
             <div className="card bg-base-200 border border-base-300 shadow-lg">
