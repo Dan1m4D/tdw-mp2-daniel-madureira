@@ -1,6 +1,5 @@
 import axios from 'axios'
-
-const API_BASE = 'https://www.thecocktaildb.com/api/json/v1/1'
+import { COCKTAILS_API_URL } from '../constants'
 
 export interface CocktailData {
   idDrink: string
@@ -77,7 +76,7 @@ export const cocktailAPI = {
   async searchByName(name: string): Promise<Drink[]> {
     try {
       const response = await axios.get<{ drinks: CocktailData[] | null }>(
-        `${API_BASE}/search.php?s=${name}`
+        `${COCKTAILS_API_URL}/search.php?s=${name}`
       )
       if (!response.data.drinks) return []
       return response.data.drinks.map(transformCocktail)
@@ -89,13 +88,15 @@ export const cocktailAPI = {
 
   // Get random drink
   async getRandomDrink(): Promise<Drink> {
-    const response = await axios.get<{ drinks: CocktailData[] }>(`${API_BASE}/random.php`)
+    const response = await axios.get<{ drinks: CocktailData[] }>(`${COCKTAILS_API_URL}/random.php`)
     return transformCocktail(response.data.drinks[0])
   },
 
   // Get drink by ID
   async getDrinkById(id: string): Promise<Drink> {
-    const response = await axios.get<{ drinks: CocktailData[] }>(`${API_BASE}/lookup.php?i=${id}`)
+    const response = await axios.get<{ drinks: CocktailData[] }>(
+      `${COCKTAILS_API_URL}/lookup.php?i=${id}`
+    )
     return transformCocktail(response.data.drinks[0])
   },
 
@@ -103,7 +104,7 @@ export const cocktailAPI = {
   async getByIngredient(ingredient: string): Promise<Drink[]> {
     try {
       const response = await axios.get<{ drinks: CocktailData[] | null }>(
-        `${API_BASE}/filter.php?i=${ingredient}`
+        `${COCKTAILS_API_URL}/filter.php?i=${ingredient}`
       )
       if (!response.data.drinks) return []
       return response.data.drinks.map(transformCocktail)
@@ -116,7 +117,7 @@ export const cocktailAPI = {
   // Get all categories
   async getCategories(): Promise<string[]> {
     const response = await axios.get<{ drinks: Array<{ strCategory: string }> }>(
-      `${API_BASE}/list.php?c=list`
+      `${COCKTAILS_API_URL}/list.php?c=list`
     )
     return response.data.drinks.map(d => d.strCategory)
   },
@@ -125,7 +126,7 @@ export const cocktailAPI = {
   async getDrinksByCategory(category: string): Promise<Drink[]> {
     try {
       const response = await axios.get<{ drinks: Array<{ idDrink: string }> | null }>(
-        `${API_BASE}/filter.php?c=${category}`
+        `${COCKTAILS_API_URL}/filter.php?c=${category}`
       )
       if (!response.data.drinks) return []
 
@@ -169,7 +170,7 @@ export const cocktailAPI = {
   ): Promise<Drink[]> {
     try {
       const response = await axios.get<{ drinks: Array<{ idDrink: string }> | null }>(
-        `${API_BASE}/filter.php?c=${category}`
+        `${COCKTAILS_API_URL}/filter.php?c=${category}`
       )
       if (!response.data.drinks) return []
 

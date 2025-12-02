@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useAppDispatch, useAppSelector } from '../app/hooks'
-import { drawCardAndGetIngredient, advanceToNextStop } from '../features/adventure/adventureSlice'
+import { advanceToNextStop, addDrawnCard } from '../features/adventure/adventureSlice'
 import { addIngredient } from '../features/game/gameSlice'
-import type { Card } from '../services/cardsAPI'
+import { useDrawCardAction } from '../actions/useAdventureQueries'
 
 export function CardDraw() {
   const dispatch = useAppDispatch()
@@ -14,26 +14,28 @@ export function CardDraw() {
   } | null>(null)
 
   const deckId = useAppSelector(state => state.adventure.deckId)
-  const loading = useAppSelector(state => state.adventure.loading)
   const currentStopIndex = useAppSelector(state => state.adventure.currentStopIndex)
   const stopPoints = useAppSelector(state => state.adventure.routeData?.stopPoints || [])
+
+  const drawCardAction = useDrawCardAction()
 
   const handleDrawCard = async () => {
     if (!deckId) return
 
-    const result = await dispatch(drawCardAndGetIngredient(deckId))
-
-    if (result.payload && typeof result.payload === 'object' && 'ingredient' in result.payload) {
-      const { card, ingredient } = result.payload as { card: Card; ingredient: string }
+    try {
+      const drawnCard = await drawCardAction.mutateAsync(deckId)
       setLastCard({
-        image: card.images.png,
-        ingredient,
-        cardName: `${card.value} of ${card.suit}`,
+        image: drawnCard.card.images.png,
+        ingredient: drawnCard.ingredient,
+        cardName: `${drawnCard.card.value} of ${drawnCard.card.suit}`,
       })
       setShowCard(true)
 
       // Add ingredient to inventory
-      dispatch(addIngredient(ingredient))
+      dispatch(addIngredient(drawnCard.ingredient))
+      dispatch(addDrawnCard(drawnCard))
+    } catch (error) {
+      console.error('Failed to draw card:', error)
     }
   }
 
@@ -87,9 +89,9 @@ export function CardDraw() {
             <button
               className="btn btn-primary w-full"
               onClick={handleDrawCard}
-              disabled={loading || !deckId || isLastStop}
+              disabled={drawCardAction.isPending || !deckId || isLastStop}
             >
-              {loading && <span className="loading loading-spinner loading-sm" />}
+              {drawCardAction.isPending && <span className="loading loading-spinner loading-sm" />}
               {!deckId ? 'Initializing deck...' : 'Draw Card'}
             </button>
           </>

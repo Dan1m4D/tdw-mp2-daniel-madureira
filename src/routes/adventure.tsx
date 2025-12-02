@@ -15,11 +15,12 @@ import {
 import {
   setStartLocation,
   setEndLocation,
-  calculateRoute,
+  setRouteData,
+  setDeckId,
   resetAdventure,
-  initializeDeck,
   type AdventureState,
 } from '../features/adventure/adventureSlice'
+import { useCalculateRouteAction, useInitializeDeckAction } from '../actions/useAdventureQueries'
 import { type AppDispatch, type RootState } from '../app/store'
 import { type Coordinate } from '../services/routingAPI'
 import { getWeather } from '../services/weatherAPI'
@@ -35,6 +36,10 @@ function Adventure() {
   const inventory = useSelector((state: RootState) => state.game.inventory)
   const [showLocationModal, setShowLocationModal] = useState(false)
   const [selectingFor, setSelectingFor] = useState<'start' | 'end' | null>(null)
+
+  // Adventure actions
+  const calculateRouteAction = useCalculateRouteAction()
+  const initializeDeckAction = useInitializeDeckAction()
 
   const handleLocationSelect = async (location: Coordinate) => {
     if (selectingFor === 'start') {
@@ -58,15 +63,21 @@ function Adventure() {
     if (!adventure.startLocation || !adventure.endLocation) {
       return
     }
-    await dispatch(
-      calculateRoute({
+
+    try {
+      const routeData = await calculateRouteAction.mutateAsync({
         start: adventure.startLocation,
         end: adventure.endLocation,
         numStops: 3,
       })
-    )
-    // Initialize deck for card drawing
-    dispatch(initializeDeck())
+      dispatch(setRouteData(routeData))
+
+      // Initialize deck for card drawing
+      const deckId = await initializeDeckAction.mutateAsync()
+      dispatch(setDeckId(deckId))
+    } catch (error) {
+      console.error('Failed to start adventure:', error)
+    }
   }
 
   const formatDistance = (meters: number) => {
@@ -132,10 +143,14 @@ function Adventure() {
         </div>
 
         {/* Error Alert */}
-        {adventure.error && (
+        {(calculateRouteAction.error || initializeDeckAction.error) && (
           <div className="alert alert-error mb-6">
             <AlertCircle size={20} />
-            <span>{adventure.error}</span>
+            <span>
+              {calculateRouteAction.error?.message ||
+                initializeDeckAction.error?.message ||
+                'An error occurred'}
+            </span>
           </div>
         )}
 
@@ -292,11 +307,14 @@ function Adventure() {
                   <button
                     onClick={handleStartAdventure}
                     disabled={
-                      !adventure.startLocation || !adventure.endLocation || adventure.loading
+                      !adventure.startLocation ||
+                      !adventure.endLocation ||
+                      calculateRouteAction.isPending ||
+                      initializeDeckAction.isPending
                     }
                     className="btn btn-primary w-full gap-2 mt-4"
                   >
-                    {adventure.loading ? (
+                    {calculateRouteAction.isPending || initializeDeckAction.isPending ? (
                       <>
                         <span className="loading loading-spinner loading-sm"></span>
                         Planning Route...

@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import type { Drink } from '../services/cocktailAPI'
-import { useCocktailSearch, useInfiniteAllCocktails } from '../hooks/useCocktails'
+import { useCocktailSearchAction, useInfiniteAllCocktailsAction } from '../actions/useCocktails'
 import { Wine, BookOpen, Zap, X, Check } from 'lucide-react'
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useAppSelector, useAppDispatch } from '../app/hooks'
@@ -28,8 +28,8 @@ function DrinksPage() {
   const craftingState = useAppSelector((state: RootState) => state.crafting)
 
   // Fetch search results if query exists, otherwise use infinite query
-  const searchResults = useCocktailSearch(searchQuery)
-  const infiniteAllDrinks = useInfiniteAllCocktails()
+  const searchResults = useCocktailSearchAction(searchQuery)
+  const infiniteAllDrinks = useInfiniteAllCocktailsAction()
 
   // Use search results if searching, otherwise use infinite drinks
   const isSearching = searchQuery.length > 0
