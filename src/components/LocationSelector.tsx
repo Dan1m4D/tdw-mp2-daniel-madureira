@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { MapPin, Search, Loader, Globe } from 'lucide-react'
 import { geocodeLocation, type Coordinate } from '../services/routingAPI'
 
@@ -6,38 +6,56 @@ interface LocationSelectorProps {
   onSelect: (location: Coordinate) => void
   placeholder?: string
   label?: string
+  debounceDelay?: number
 }
 
 export function LocationSelector({
   onSelect,
   placeholder = 'Search for a location...',
   label = 'Location',
+  debounceDelay = 500,
 }: LocationSelectorProps) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Coordinate[]>([])
   const [loading, setLoading] = useState(false)
   const [showResults, setShowResults] = useState(false)
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const handleSearch = async (searchQuery: string) => {
-    setQuery(searchQuery)
-    if (!searchQuery.trim()) {
+  // Debounced search effect
+  useEffect(() => {
+    // Clear previous timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+
+    if (!query.trim()) {
       setResults([])
       setShowResults(false)
       return
     }
 
+    // Set new timer for debounced search
     setLoading(true)
-    try {
-      const locations = await geocodeLocation(searchQuery)
-      setResults(locations)
-      setShowResults(true)
-    } catch (error) {
-      console.error('Search error:', error)
-      setResults([])
-    } finally {
-      setLoading(false)
+    debounceTimerRef.current = setTimeout(async () => {
+      try {
+        const locations = await geocodeLocation(query)
+        setResults(locations)
+        setShowResults(true)
+      } catch (error) {
+        console.error('Search error:', error)
+        setResults([])
+      } finally {
+        setLoading(false)
+      }
+    }, debounceDelay)
+
+    // Cleanup timer on unmount
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
     }
-  }
+  }, [query, debounceDelay])
 
   const handleSelectLocation = (location: Coordinate) => {
     onSelect(location)
@@ -62,7 +80,7 @@ export function LocationSelector({
             placeholder={placeholder}
             className="input input-bordered join-item w-full placeholder-base-content/40 focus:outline-primary"
             value={query}
-            onChange={e => handleSearch(e.target.value)}
+            onChange={e => setQuery(e.target.value)}
             onFocus={() => query && setShowResults(true)}
           />
           <button className="btn btn-primary join-item" disabled={loading} aria-label="Search">

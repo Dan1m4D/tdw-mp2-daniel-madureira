@@ -66,23 +66,23 @@ const NPC_DESCRIPTIONS: Record<string, string> = {
 const BASE_INGREDIENTS = [
   'Rum',
   'Gin',
-  'Vodka',
   'Tequila',
   'Whiskey',
+  'Vodka', // Common spirits
   'Lime Juice',
   'Lemon Juice',
-  'Orange Juice',
-  'Cranberry Juice',
-  'Pineapple Juice',
-  'Grenadine Syrup',
+  'Orange Juice', // Juices
   'Simple Syrup',
-  'Mint',
-  'Basil',
-  'Vermouth',
-  'Cointreau',
-  'Angostura Bitters',
-  'Lime Peel',
-  'Orange Peel',
+  'Sugar',
+  'Honey',
+  'Agave Syrup', // Syrups
+  'Fresh Mint',
+  'Fresh Basil', // Herbs
+  'Bitters',
+  'Vermouth', // Fortified
+  'Olive',
+  'Lemon Peel',
+  'Orange Peel', // Garnishes
 ]
 
 function getRandomNPCName(): string {
