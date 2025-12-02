@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit'
 import { getRouteWithStops, type Coordinate, type RouteResponse } from '../../services/routingAPI'
+import { createDeck, drawCard, cardToIngredient, type Card } from '../../services/cardsAPI'
 
 export interface RouteData {
   mainRoute: RouteResponse
@@ -8,10 +9,19 @@ export interface RouteData {
   totalDuration: number // in seconds
 }
 
+export interface DrawnCard {
+  card: Card
+  ingredient: string
+  timestamp: number
+}
+
 export interface AdventureState {
   startLocation: Coordinate | null
   endLocation: Coordinate | null
   routeData: RouteData | null
+  deckId: string | null
+  currentStopIndex: number
+  drawnCards: DrawnCard[]
   loading: boolean
   error: string | null
   status: 'idle' | 'planning' | 'active' | 'completed'
@@ -21,6 +31,9 @@ const initialState: AdventureState = {
   startLocation: null,
   endLocation: null,
   routeData: null,
+  deckId: null,
+  currentStopIndex: 0,
+  drawnCards: [],
   loading: false,
   error: null,
   status: 'idle',
@@ -42,6 +55,33 @@ export const calculateRoute = createAsyncThunk(
   }
 )
 
+// Async thunk to initialize deck
+export const initializeDeck = createAsyncThunk(
+  'adventure/initializeDeck',
+  async (_, { rejectWithValue }) => {
+    try {
+      const deckId = await createDeck()
+      return deckId
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to create deck')
+    }
+  }
+)
+
+// Async thunk to draw a card
+export const drawCardAndGetIngredient = createAsyncThunk(
+  'adventure/drawCard',
+  async (deckId: string, { rejectWithValue }) => {
+    try {
+      const card = await drawCard(deckId)
+      const ingredient = cardToIngredient(card)
+      return { card, ingredient, timestamp: Date.now() }
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to draw card')
+    }
+  }
+)
+
 const adventureSlice = createSlice({
   name: 'adventure',
   initialState,
@@ -57,10 +97,18 @@ const adventureSlice = createSlice({
     setStatus: (state, action: PayloadAction<AdventureState['status']>) => {
       state.status = action.payload
     },
+    advanceToNextStop: state => {
+      if (state.routeData && state.currentStopIndex < state.routeData.stopPoints.length) {
+        state.currentStopIndex += 1
+      }
+    },
     resetAdventure: state => {
       state.startLocation = null
       state.endLocation = null
       state.routeData = null
+      state.deckId = null
+      state.currentStopIndex = 0
+      state.drawnCards = []
       state.error = null
       state.status = 'idle'
       state.loading = false
@@ -71,6 +119,7 @@ const adventureSlice = createSlice({
   },
   extraReducers: builder => {
     builder
+      // calculateRoute
       .addCase(calculateRoute.pending, state => {
         state.loading = true
         state.error = null
@@ -87,9 +136,43 @@ const adventureSlice = createSlice({
         state.error = action.payload as string
         state.status = 'idle'
       })
+      // initializeDeck
+      .addCase(initializeDeck.pending, state => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(initializeDeck.fulfilled, (state, action) => {
+        state.loading = false
+        state.deckId = action.payload
+        state.error = null
+      })
+      .addCase(initializeDeck.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload as string
+      })
+      // drawCardAndGetIngredient
+      .addCase(drawCardAndGetIngredient.pending, state => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(drawCardAndGetIngredient.fulfilled, (state, action) => {
+        state.loading = false
+        state.drawnCards.push(action.payload)
+        state.error = null
+      })
+      .addCase(drawCardAndGetIngredient.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload as string
+      })
   },
 })
 
-export const { setStartLocation, setEndLocation, setStatus, resetAdventure, clearError } =
-  adventureSlice.actions
+export const {
+  setStartLocation,
+  setEndLocation,
+  setStatus,
+  advanceToNextStop,
+  resetAdventure,
+  clearError,
+} = adventureSlice.actions
 export default adventureSlice.reducer
