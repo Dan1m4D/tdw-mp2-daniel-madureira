@@ -3,8 +3,12 @@ import type { Drink } from '../services/cocktailAPI'
 import { useCocktailSearch, useInfiniteAllCocktails } from '../hooks/useCocktails'
 import { Wine, BookOpen, Zap, X, Check } from 'lucide-react'
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
-import { useAppSelector } from '../app/hooks'
+import { useAppSelector, useAppDispatch } from '../app/hooks'
 import type { RootState } from '../app/store'
+import { completeCrafting } from '../features/crafting/craftingSlice'
+import { removeIngredient } from '../features/game/gameSlice'
+import { completeNPC } from '../features/adventure/adventureSlice'
+import { useNavigate } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/drinks')({
   component: DrinksPage,
@@ -19,6 +23,9 @@ function DrinksPage() {
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set())
   const [sortBy, setSortBy] = useState<SortOption>('name')
   const observerTarget = useRef<HTMLDivElement>(null)
+
+  // Get crafting state
+  const craftingState = useAppSelector((state: RootState) => state.crafting)
 
   // Fetch search results if query exists, otherwise use infinite query
   const searchResults = useCocktailSearch(searchQuery)
@@ -382,6 +389,9 @@ function DrinksPage() {
             drink={selectedDrink}
             playerInventory={playerInventory}
             onClose={closeDrawer}
+            isCraftingForNPC={craftingState.isCraftingForNPC}
+            craftingNPCName={craftingState.currentNPCName || undefined}
+            craftingNPCId={craftingState.currentNPCId || undefined}
           />
         )}
       </div>
@@ -472,9 +482,22 @@ interface DrinkDetailDrawerProps {
   drink: Drink
   playerInventory: string[]
   onClose: () => void
+  isCraftingForNPC: boolean
+  craftingNPCName?: string
+  craftingNPCId?: string
 }
 
-function DrinkDetailDrawer({ drink, playerInventory, onClose }: DrinkDetailDrawerProps) {
+function DrinkDetailDrawer({
+  drink,
+  playerInventory,
+  onClose,
+  isCraftingForNPC,
+  craftingNPCName,
+  craftingNPCId,
+}: DrinkDetailDrawerProps) {
+  const navigate = useNavigate()
+  const dispatch = useAppDispatch()
+
   const drinkIngredients = drink.ingredients.map(ingredient => ({
     name: ingredient.name,
     measure: ingredient.measure,
@@ -482,6 +505,31 @@ function DrinkDetailDrawer({ drink, playerInventory, onClose }: DrinkDetailDrawe
   }))
 
   const canCraft = drinkIngredients.every(ing => ing.has)
+
+  const handleCraft = () => {
+    if (!canCraft) return
+
+    // Remove ingredients from inventory
+    drinkIngredients.forEach(ingredient => {
+      if (ingredient.has) {
+        dispatch(removeIngredient(ingredient.name))
+      }
+    })
+
+    if (isCraftingForNPC && craftingNPCId && craftingNPCName) {
+      // Complete NPC and return to adventure
+      dispatch(
+        completeNPC({
+          npcId: craftingNPCId,
+          npcName: craftingNPCName,
+          drinkCrafted: drink.name,
+          ingredientsUsed: drinkIngredients.map(i => i.name),
+        })
+      )
+      dispatch(completeCrafting())
+      navigate({ to: '/adventure' })
+    }
+  }
 
   return (
     <>
@@ -499,6 +547,17 @@ function DrinkDetailDrawer({ drink, playerInventory, onClose }: DrinkDetailDrawe
         </div>
 
         <div className="p-6 space-y-6">
+          {/* NPC Requirements (when crafting for NPC) */}
+          {isCraftingForNPC && craftingNPCName && (
+            <div className="bg-primary/10 border-2 border-primary rounded-lg p-4">
+              <h3 className="font-semibold text-lg mb-2 text-primary">👤 Customer Request</h3>
+              <p className="text-base-content/80 font-medium mb-3">{craftingNPCName} wants:</p>
+              <p className="text-sm text-base-content/70 italic">
+                A drink with ingredients they enjoy. Choose wisely to satisfy them!
+              </p>
+            </div>
+          )}
+
           {/* Drink Image */}
           {drink.image && (
             <div className="rounded-lg overflow-hidden border-2 border-base-300">
@@ -588,8 +647,15 @@ function DrinkDetailDrawer({ drink, playerInventory, onClose }: DrinkDetailDrawe
           </div>
 
           {/* Craft Button */}
-          <button className={`btn w-full ${canCraft ? 'btn-success' : 'btn-disabled'}`}>
-            {canCraft ? 'Craft Drink' : 'Cannot Craft'}
+          <button
+            onClick={handleCraft}
+            className={`btn w-full ${canCraft ? 'btn-success' : 'btn-disabled'}`}
+          >
+            {canCraft
+              ? isCraftingForNPC
+                ? `Craft for ${craftingNPCName}`
+                : 'Craft Drink'
+              : 'Cannot Craft'}
           </button>
         </div>
       </div>

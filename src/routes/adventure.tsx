@@ -2,12 +2,22 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { Play, Wine, MapPin, AlertCircle, CheckCircle } from 'lucide-react'
 import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { MapView, LocationDetails, NPCInformation, LocationSelector } from '../components'
+import {
+  MapView,
+  LocationDetails,
+  NPCInformation,
+  LocationSelector,
+  CardDraw,
+  InventoryDisplay,
+  NPCServingPanel,
+  AdventureSummary,
+} from '../components'
 import {
   setStartLocation,
   setEndLocation,
   calculateRoute,
   resetAdventure,
+  initializeDeck,
   type AdventureState,
 } from '../features/adventure/adventureSlice'
 import { type AppDispatch, type RootState } from '../app/store'
@@ -22,6 +32,7 @@ export const Route = createFileRoute('/adventure')({
 function Adventure() {
   const dispatch = useDispatch<AppDispatch>()
   const adventure = useSelector((state: RootState) => state.adventure) as AdventureState
+  const inventory = useSelector((state: RootState) => state.game.inventory)
   const [showLocationModal, setShowLocationModal] = useState(false)
   const [selectingFor, setSelectingFor] = useState<'start' | 'end' | null>(null)
 
@@ -31,7 +42,7 @@ function Adventure() {
       // Fetch weather and generate NPC for start location
       try {
         const weather = await getWeather(location.latitude, location.longitude)
-        const npc = generateNPC(weather, location.name || 'Unknown Location')
+        const npc = generateNPC(weather, location.name || 'Unknown Location', inventory)
         dispatch(generateNewNPCFromWeather(npc))
       } catch (error) {
         console.error('Failed to fetch weather:', error)
@@ -54,6 +65,8 @@ function Adventure() {
         numStops: 3,
       })
     )
+    // Initialize deck for card drawing
+    dispatch(initializeDeck())
   }
 
   const formatDistance = (meters: number) => {
@@ -320,6 +333,15 @@ function Adventure() {
             {/* NPC Information */}
             <NPCInformation />
 
+            {/* NPC Serving Panel */}
+            {adventure.status !== 'idle' && <NPCServingPanel />}
+
+            {/* Inventory Display */}
+            {adventure.status !== 'idle' && <InventoryDisplay />}
+
+            {/* Card Draw */}
+            {adventure.status !== 'idle' && adventure.deckId && <CardDraw />}
+
             {/* Drink Crafting */}
             <div className="card bg-base-200 border border-base-300 shadow-lg">
               <div className="card-body">
@@ -361,6 +383,11 @@ function Adventure() {
               </button>
             </div>
           </div>
+        )}
+
+        {/* Adventure Summary Modal */}
+        {adventure.completedNPCs.length === adventure.routeData?.stopPoints.length && (
+          <AdventureSummary />
         )}
       </div>
     </div>
