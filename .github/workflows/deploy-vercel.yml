@@ -4,6 +4,10 @@ on:
   push:
     branches: [ main ]
 
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -13,41 +17,46 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Install pnpm
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 9
 
+      # Setup Node with pnpm cache
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20.x
-          cache: 'pnpm'
+          cache: pnpm
 
+      # Install dependencies
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build project
-        run: pnpm build
+      # Install Vercel CLI via pnpm
+      - name: Install Vercel CLI
+        run: pnpm add -g vercel@latest
 
+      # Pull Vercel env vars
+      - name: Pull Vercel Environment Info
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      # Build using Vercel
+      - name: Build Project Artifacts
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      # Deploy prebuilt output
       - name: Deploy to Vercel
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          working-directory: ./
-          vercel-args: '--prod'
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Deployment summary
         if: success()
         run: |
           echo "🚀 Deployment to Vercel completed successfully!"
-          echo "📱 Check your deployment at: https://vercel.com/deployments"
 
       - name: Deployment failed
         if: failure()
         run: |
           echo "❌ Deployment to Vercel failed"
           exit 1
-
