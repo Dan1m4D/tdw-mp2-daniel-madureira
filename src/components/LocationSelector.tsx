@@ -7,6 +7,7 @@ interface LocationSelectorProps {
   placeholder?: string
   label?: string
   debounceDelay?: number
+  resultsMode?: 'absolute' | 'relative'
 }
 
 export function LocationSelector({
@@ -14,6 +15,7 @@ export function LocationSelector({
   placeholder = 'Search for a location...',
   label = 'Location',
   debounceDelay = 500,
+  resultsMode = 'absolute',
 }: LocationSelectorProps) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Coordinate[]>([])
@@ -90,7 +92,11 @@ export function LocationSelector({
 
         {/* Results dropdown */}
         {showResults && results.length > 0 && (
-          <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-base-100 border-2 border-primary/20 rounded-xl shadow-2xl max-h-72 overflow-y-auto">
+          <div
+            className={`${
+              resultsMode === 'absolute' ? 'absolute top-full left-0 right-0 mt-2' : 'relative mt-4'
+            } z-50 bg-base-100 border-2 border-primary/20 rounded-xl shadow-2xl max-h-72 overflow-y-auto`}
+          >
             <div className="p-2">
               {results.map((result, index) => (
                 <button
@@ -122,7 +128,11 @@ export function LocationSelector({
 
         {/* No results state */}
         {showResults && query && results.length === 0 && !loading && (
-          <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-base-100 border-2 border-warning/20 rounded-xl shadow-lg p-6 text-center">
+          <div
+            className={`${
+              resultsMode === 'absolute' ? 'absolute top-full left-0 right-0 mt-2' : 'relative mt-4'
+            } z-50 bg-base-100 border-2 border-warning/20 rounded-xl shadow-lg p-6 text-center`}
+          >
             <MapPin size={32} className="mx-auto text-warning mb-2 opacity-50" />
             <p className="text-sm font-semibold text-base-content">No locations found</p>
             <p className="text-xs text-base-content/60 mt-1">
@@ -133,7 +143,11 @@ export function LocationSelector({
 
         {/* Loading state */}
         {loading && (
-          <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-base-100 border-2 border-primary/20 rounded-xl shadow-lg p-6 text-center">
+          <div
+            className={`${
+              resultsMode === 'absolute' ? 'absolute top-full left-0 right-0 mt-2' : 'relative mt-4'
+            } z-50 bg-base-100 border-2 border-primary/20 rounded-xl shadow-lg p-6 text-center`}
+          >
             <div className="flex items-center justify-center gap-2">
               <Loader size={20} className="animate-spin text-primary" />
               <p className="text-sm font-semibold text-base-content">Searching...</p>

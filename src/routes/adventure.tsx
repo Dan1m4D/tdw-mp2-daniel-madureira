@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import {
   MapView,
-  LocationDetails,
   NPCInformation,
   LocationSelector,
   CardDraw,
@@ -68,7 +67,7 @@ function Adventure() {
       const routeData = await calculateRouteAction.mutateAsync({
         start: adventure.startLocation,
         end: adventure.endLocation,
-        numStops: 3,
+        numStops: 5,
       })
       dispatch(setRouteData(routeData))
 
@@ -128,23 +127,29 @@ function Adventure() {
     : null
 
   return (
-    <div className="min-h-[calc(100vh-120px)] py-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-[calc(100vh-120px)] py-4 md:py-8 bg-base-100">
+      <div className="max-w-7xl mx-auto px-4">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8 gap-4">
-          <div>
-            <h1 className="text-4xl font-bold mb-2">Adventure Mode</h1>
-            <p className="text-base-content/70">Your journey through time and flavor</p>
+        <div className="flex flex-col md:flex-row items-center justify-between mb-6 md:mb-8 gap-4">
+          <div className="text-center md:text-left">
+            <h1 className="text-3xl md:text-4xl font-bold mb-2 font-serif text-primary">
+              Adventure Mode
+            </h1>
+            <p className="text-base-content/70 text-sm md:text-base">
+              Your journey through time and flavor
+            </p>
           </div>
-          <div className="badge badge-lg badge-primary gap-2">
+          <div className="badge badge-lg badge-primary gap-2 p-4 shadow-md w-full md:w-auto justify-center">
             <span className="loading loading-spinner loading-sm"></span>
-            {adventure.status === 'idle' ? 'Ready' : adventure.status}
+            <span className="font-semibold uppercase tracking-wider text-sm">
+              {adventure.status === 'idle' ? 'Ready to Start' : adventure.status}
+            </span>
           </div>
         </div>
 
         {/* Error Alert */}
         {(calculateRouteAction.error || initializeDeckAction.error) && (
-          <div className="alert alert-error mb-6">
+          <div className="alert alert-error mb-6 md:mb-8 shadow-lg">
             <AlertCircle size={20} />
             <span>
               {calculateRouteAction.error?.message ||
@@ -154,81 +159,40 @@ function Adventure() {
           </div>
         )}
 
-        {/* Main Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Map & Location (Main Content) */}
-          <div className="lg:col-span-3 space-y-6">
-            <MapView
-              startLocation={mapData?.startLocation}
-              endLocation={mapData?.endLocation}
-              stopPoints={mapData?.stopPoints}
-              route={mapData?.route}
-            />
-
-            {/* Route Details */}
-            {adventure.routeData && (
-              <div className="card bg-base-200 border border-base-300 shadow-lg">
-                <div className="card-body">
-                  <h2 className="card-title flex items-center gap-2">
-                    <MapPin size={20} className="text-primary" />
-                    Route Details
-                  </h2>
-                  <div className="divider my-2" />
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-sm text-base-content/60">Distance</p>
-                      <p className="text-lg font-semibold">
-                        {formatDistance(adventure.routeData.totalDistance)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-base-content/60">Duration</p>
-                      <p className="text-lg font-semibold">
-                        {formatDuration(adventure.routeData.totalDuration)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-base-content/60">Stops</p>
-                      <p className="text-lg font-semibold">
-                        {adventure.routeData.stopPoints.length}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Stop Points List */}
-                  <div className="mt-4">
-                    <h3 className="font-semibold mb-3">Suggested Stops</h3>
-                    <div className="space-y-2">
-                      {adventure.routeData.stopPoints.map((stop, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center gap-3 p-2 bg-base-100 rounded-lg"
-                        >
-                          <div className="badge badge-primary">{index + 1}</div>
-                          <div>
-                            <p className="font-semibold text-sm">{stop.name}</p>
-                            <p className="text-xs text-base-content/60">
-                              {stop.latitude.toFixed(4)}, {stop.longitude.toFixed(4)}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <LocationDetails />
+        {/* Map Section - Full Width */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
+          {/* Map Area */}
+          <div className="lg:col-span-8 rounded-2xl overflow-hidden shadow-2xl border-4 border-base-300 bg-base-200 h-[300px] md:h-[400px] relative group order-2 lg:order-1">
+            <div className="absolute inset-0 z-0">
+              <MapView
+                startLocation={mapData?.startLocation}
+                endLocation={mapData?.endLocation}
+                stopPoints={mapData?.stopPoints}
+                route={mapData?.route}
+                currentStopIndex={adventure.currentStopIndex}
+              />
+            </div>
+            <div className="absolute inset-0 pointer-events-none border-4 border-base-content/5 rounded-2xl"></div>
           </div>
 
-          {/* Sidebar: Actions & NPC */}
-          <div className="space-y-6">
-            {/* Location Selection */}
+          {/* NPC Area (Top Right) */}
+          <div className="lg:col-span-4 h-auto min-h-[300px] md:h-[400px] overflow-y-auto rounded-2xl shadow-xl border border-base-300 bg-base-200 order-1 lg:order-2">
+            <NPCInformation />
+          </div>
+        </div>
+
+        {/* Dashboard Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
+          {/* Column 1: Journey & Logistics */}
+          <div className="space-y-4 md:space-y-6">
+            {/* Route Planning (Idle) */}
             {adventure.status === 'idle' && (
-              <div className="card bg-base-200 border border-base-300 shadow-lg">
+              <div className="card bg-base-200 border border-base-300 shadow-xl">
                 <div className="card-body">
-                  <h2 className="card-title text-lg">Plan Your Route</h2>
+                  <h2 className="card-title text-xl flex items-center gap-2 text-primary">
+                    <MapPin size={24} />
+                    Plan Your Route
+                  </h2>
                   <div className="divider my-2" />
 
                   {/* Start Location */}
@@ -237,9 +201,9 @@ function Adventure() {
                       <span className="label-text font-semibold">Start Location</span>
                     </label>
                     {adventure.startLocation ? (
-                      <div className="p-3 bg-base-100 rounded-lg border border-success">
-                        <p className="font-semibold text-sm">{adventure.startLocation.name}</p>
-                        <p className="text-xs text-base-content/60">
+                      <div className="p-4 bg-base-100 rounded-xl border-l-4 border-success shadow-sm">
+                        <p className="font-bold text-base">{adventure.startLocation.name}</p>
+                        <p className="text-xs text-base-content/60 font-mono mt-1">
                           {adventure.startLocation.latitude.toFixed(4)},{' '}
                           {adventure.startLocation.longitude.toFixed(4)}
                         </p>
@@ -248,7 +212,7 @@ function Adventure() {
                             setSelectingFor('start')
                             setShowLocationModal(true)
                           }}
-                          className="btn btn-xs btn-ghost w-full mt-2"
+                          className="btn btn-xs btn-ghost w-full mt-2 text-primary"
                         >
                           Change
                         </button>
@@ -259,10 +223,10 @@ function Adventure() {
                           setSelectingFor('start')
                           setShowLocationModal(true)
                         }}
-                        className="btn btn-sm btn-outline gap-2"
+                        className="btn btn-outline border-dashed border-2 h-auto py-4 gap-2 hover:bg-base-100 hover:border-primary"
                       >
-                        <MapPin size={16} />
-                        Select Start
+                        <MapPin size={20} />
+                        Select Start Point
                       </button>
                     )}
                   </div>
@@ -273,9 +237,9 @@ function Adventure() {
                       <span className="label-text font-semibold">End Location</span>
                     </label>
                     {adventure.endLocation ? (
-                      <div className="p-3 bg-base-100 rounded-lg border border-error">
-                        <p className="font-semibold text-sm">{adventure.endLocation.name}</p>
-                        <p className="text-xs text-base-content/60">
+                      <div className="p-4 bg-base-100 rounded-xl border-l-4 border-error shadow-sm">
+                        <p className="font-bold text-base">{adventure.endLocation.name}</p>
+                        <p className="text-xs text-base-content/60 font-mono mt-1">
                           {adventure.endLocation.latitude.toFixed(4)},{' '}
                           {adventure.endLocation.longitude.toFixed(4)}
                         </p>
@@ -284,7 +248,7 @@ function Adventure() {
                             setSelectingFor('end')
                             setShowLocationModal(true)
                           }}
-                          className="btn btn-xs btn-ghost w-full mt-2"
+                          className="btn btn-xs btn-ghost w-full mt-2 text-primary"
                         >
                           Change
                         </button>
@@ -295,10 +259,10 @@ function Adventure() {
                           setSelectingFor('end')
                           setShowLocationModal(true)
                         }}
-                        className="btn btn-sm btn-outline gap-2"
+                        className="btn btn-outline border-dashed border-2 h-auto py-4 gap-2 hover:bg-base-100 hover:border-primary"
                       >
-                        <MapPin size={16} />
-                        Select End
+                        <MapPin size={20} />
+                        Select Destination
                       </button>
                     )}
                   </div>
@@ -312,7 +276,7 @@ function Adventure() {
                       calculateRouteAction.isPending ||
                       initializeDeckAction.isPending
                     }
-                    className="btn btn-primary w-full gap-2 mt-4"
+                    className="btn btn-primary w-full gap-2 mt-6 shadow-lg hover:shadow-xl transition-all"
                   >
                     {calculateRouteAction.isPending || initializeDeckAction.isPending ? (
                       <>
@@ -330,75 +294,204 @@ function Adventure() {
               </div>
             )}
 
-            {/* Route Planned */}
-            {adventure.status !== 'idle' && adventure.routeData && (
-              <div className="card bg-base-200 border-2 border-success shadow-lg">
+            {/* Route Details (Active) */}
+            {adventure.routeData && (
+              <div className="card bg-base-200 border border-base-300 shadow-xl">
                 <div className="card-body">
-                  <div className="flex items-center gap-2 mb-4">
-                    <CheckCircle size={24} className="text-success" />
-                    <h2 className="card-title text-lg">Route Ready!</h2>
+                  <div className="flex items-center justify-between">
+                    <h2 className="card-title flex items-center gap-2 text-primary">
+                      <MapPin size={20} />
+                      Route Details
+                    </h2>
+                    {adventure.status !== 'idle' && (
+                      <button
+                        onClick={() => dispatch(resetAdventure())}
+                        className="btn btn-xs btn-ghost text-error"
+                      >
+                        Reset
+                      </button>
+                    )}
                   </div>
-                  <button
-                    onClick={() => dispatch(resetAdventure())}
-                    className="btn btn-outline w-full"
-                  >
-                    Plan New Route
-                  </button>
+                  <div className="divider my-2" />
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="bg-base-100 p-2 rounded-lg">
+                      <p className="text-xs text-base-content/60 uppercase tracking-wider">
+                        Distance
+                      </p>
+                      <p className="font-bold text-primary">
+                        {formatDistance(adventure.routeData.totalDistance)}
+                      </p>
+                    </div>
+                    <div className="bg-base-100 p-2 rounded-lg">
+                      <p className="text-xs text-base-content/60 uppercase tracking-wider">
+                        Duration
+                      </p>
+                      <p className="font-bold text-primary">
+                        {formatDuration(adventure.routeData.totalDuration)}
+                      </p>
+                    </div>
+                    <div className="bg-base-100 p-2 rounded-lg">
+                      <p className="text-xs text-base-content/60 uppercase tracking-wider">Stops</p>
+                      <p className="font-bold text-primary">
+                        {adventure.routeData.stopPoints.length}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Stop Points List */}
+                  <div className="mt-6">
+                    <h3 className="font-semibold mb-3 text-sm uppercase tracking-wider text-base-content/70">
+                      Itinerary
+                    </h3>
+                    <div className="space-y-3">
+                      {adventure.routeData.stopPoints.map((stop, index) => {
+                        const isCompleted = index < adventure.currentStopIndex
+                        const isCurrent = index === adventure.currentStopIndex
+                        return (
+                          <div
+                            key={index}
+                            className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                              isCurrent
+                                ? 'bg-primary/10 border-primary shadow-md scale-105'
+                                : isCompleted
+                                  ? 'bg-base-100 border-success/30 opacity-70'
+                                  : 'bg-base-100 border-base-200'
+                            }`}
+                          >
+                            <div
+                              className={`badge ${
+                                isCurrent
+                                  ? 'badge-primary'
+                                  : isCompleted
+                                    ? 'badge-success'
+                                    : 'badge-ghost'
+                              }`}
+                            >
+                              {index + 1}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p
+                                className={`font-semibold text-sm truncate ${isCompleted ? 'line-through text-base-content/50' : ''}`}
+                              >
+                                {stop.name}
+                              </p>
+                              {isCurrent && (
+                                <p className="text-xs text-primary font-bold animate-pulse">
+                                  Current Location
+                                </p>
+                              )}
+                            </div>
+                            {isCompleted && <CheckCircle size={16} className="text-success" />}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
+          </div>
 
-            {/* NPC Information */}
-            <NPCInformation />
-
-            {/* NPC Serving Panel */}
+          {/* Column 2: The Encounter (NPC) */}
+          <div className="space-y-6">
+            {/* NPC Serving Panel moved here if needed, or keep in col 2 */}
             {adventure.status !== 'idle' && <NPCServingPanel />}
 
-            {/* Inventory Display */}
-            {adventure.status !== 'idle' && <InventoryDisplay />}
-
-            {/* Card Draw */}
-            {adventure.status !== 'idle' && adventure.deckId && <CardDraw />}
-
-            {/* Drink Crafting */}
-            <div className="card bg-base-200 border border-base-300 shadow-lg">
-              <div className="card-body">
-                <h2 className="card-title flex items-center gap-2">
-                  <Wine size={20} className="text-orange-500" />
-                  Craft
-                </h2>
-                <div className="divider my-2" />
-                <p className="text-sm text-base-content/70 mb-4">
-                  Explore our cocktail collection and craft drinks
-                </p>
-                <Link to="/drinks" className="btn btn-primary btn-sm w-full">
-                  View Cocktails
-                </Link>
+            {/* If idle, show placeholder or tips */}
+            {adventure.status === 'idle' && (
+              <div className="card bg-base-200 border border-base-300 border-dashed h-full">
+                <div className="card-body items-center text-center opacity-50 justify-center">
+                  <CheckCircle size={48} className="mb-2" />
+                  <h3 className="font-bold">No Active Customer</h3>
+                  <p className="text-sm">Start your adventure to meet NPCs.</p>
+                </div>
               </div>
-            </div>
+            )}
+          </div>
+
+          {/* Column 3: Resources & Actions */}
+          <div className="space-y-6">
+            {adventure.status !== 'idle' && (
+              <>
+                <InventoryDisplay />
+                {adventure.deckId && <CardDraw />}
+
+                {/* Drink Crafting CTA */}
+                <div className="card bg-linear-to-br from-primary to-secondary text-primary-content shadow-xl">
+                  <div className="card-body">
+                    <h2 className="card-title flex items-center gap-2">
+                      <Wine size={24} />
+                      Ready to Mix?
+                    </h2>
+                    <p className="opacity-90 text-sm">
+                      Use your ingredients to craft the perfect drink for the current NPC.
+                    </p>
+                    <div className="card-actions justify-end mt-4">
+                      <Link
+                        to="/drinks"
+                        className="btn btn-white text-primary hover:bg-base-100 border-none w-full"
+                      >
+                        Open Bar Menu
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Placeholder for idle state in column 3 */}
+            {adventure.status === 'idle' && (
+              <div className="card bg-base-200 border border-base-300 border-dashed">
+                <div className="card-body items-center text-center opacity-50">
+                  <Wine size={48} className="mb-2" />
+                  <h3 className="font-bold">Bar Closed</h3>
+                  <p className="text-sm">
+                    Start your adventure to open the bar and manage inventory.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Location Selector Modal */}
         {showLocationModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-base-100 rounded-lg shadow-xl max-w-md w-full max-h-96 p-6">
-              <h3 className="text-xl font-bold mb-4">
-                Select {selectingFor === 'start' ? 'Start' : 'End'} Location
-              </h3>
-              <LocationSelector
-                onSelect={handleLocationSelect}
-                label={selectingFor === 'start' ? 'Start Location' : 'End Location'}
-              />
-              <button
-                onClick={() => {
-                  setShowLocationModal(false)
-                  setSelectingFor(null)
-                }}
-                className="btn btn-ghost w-full mt-4"
-              >
-                Close
-              </button>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-base-100 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
+              <div className="p-6 border-b border-base-200 flex justify-between items-center bg-base-200/50">
+                <h3 className="text-xl font-bold font-serif">
+                  Select {selectingFor === 'start' ? 'Start' : 'End'} Location
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowLocationModal(false)
+                    setSelectingFor(null)
+                  }}
+                  className="btn btn-sm btn-circle btn-ghost"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto min-h-[300px]">
+                <LocationSelector
+                  onSelect={handleLocationSelect}
+                  label={selectingFor === 'start' ? 'Start Location' : 'End Location'}
+                  resultsMode="relative"
+                />
+              </div>
+
+              <div className="p-4 border-t border-base-200 bg-base-100">
+                <button
+                  onClick={() => {
+                    setShowLocationModal(false)
+                    setSelectingFor(null)
+                  }}
+                  className="btn btn-ghost w-full"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         )}

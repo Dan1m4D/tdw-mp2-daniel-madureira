@@ -1,166 +1,123 @@
 import { createFileRoute } from '@tanstack/react-router'
-import type { Drink } from '../services/cocktailAPI'
-import { useCocktailSearchAction, useInfiniteAllCocktailsAction } from '../actions/useCocktails'
-import { Wine, BookOpen, Zap, X, Check } from 'lucide-react'
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
+import type { Drink, DrinkPreview } from '../services/cocktailAPI'
+import {
+  useCocktailSearchAction,
+  useInfiniteAllCocktailsAction,
+  useCocktailIngredientsAction,
+  useCocktailCategoriesAction,
+  useCocktailsByIngredientAction,
+  useCocktailsByCategoryAction,
+  useCocktailByIdAction,
+} from '../actions/useCocktails'
+import { Wine, Zap, X, Check } from 'lucide-react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useAppSelector, useAppDispatch } from '../app/hooks'
 import type { RootState } from '../app/store'
 import { completeCrafting } from '../features/crafting/craftingSlice'
 import { removeIngredient } from '../features/game/gameSlice'
-import { completeNPC } from '../features/adventure/adventureSlice'
+import { completeNPC, advanceToNextStop } from '../features/adventure/adventureSlice'
 import { useNavigate } from '@tanstack/react-router'
+import { NPCSuccessModal } from '../components'
 
 export const Route = createFileRoute('/drinks')({
   component: DrinksPage,
 })
 
-type SortOption = 'name' | 'missing'
+type FilterType = 'all' | 'search' | 'ingredient' | 'category'
 
 function DrinksPage() {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedDrink, setSelectedDrink] = useState<Drink | null>(null)
-  const [selectedIngredients, setSelectedIngredients] = useState<Set<string>>(new Set())
-  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set())
-  const [sortBy, setSortBy] = useState<SortOption>('name')
+  const [filterType, setFilterType] = useState<FilterType>('all')
+  const [filterValue, setFilterValue] = useState('')
+  const [selectedDrinkId, setSelectedDrinkId] = useState<string | null>(null)
+  const [showSuccessModal, setShowSuccessModal] = useState<{
+    npcName: string
+    drinkName: string
+    currentStop: number
+    totalStops: number
+  } | null>(null)
   const observerTarget = useRef<HTMLDivElement>(null)
+
+  const dispatch = useAppDispatch()
+  const navigate = useNavigate()
 
   // Get crafting state
   const craftingState = useAppSelector((state: RootState) => state.crafting)
+  const adventureState = useAppSelector((state: RootState) => state.adventure)
+  const playerInventory = useAppSelector((state: RootState) => state.game.inventory)
 
-  // Fetch search results if query exists, otherwise use infinite query
-  const searchResults = useCocktailSearchAction(searchQuery)
+  // Queries
+  const ingredientsQuery = useCocktailIngredientsAction()
+  const categoriesQuery = useCocktailCategoriesAction()
+
+  // Conditional Queries based on filter
+  const searchQuery = useCocktailSearchAction(filterType === 'search' ? filterValue : '')
+  const ingredientQuery = useCocktailsByIngredientAction(
+    filterType === 'ingredient' ? filterValue : ''
+  )
+  const categoryQuery = useCocktailsByCategoryAction(filterType === 'category' ? filterValue : '')
   const infiniteAllDrinks = useInfiniteAllCocktailsAction()
 
-  // Use search results if searching, otherwise use infinite drinks
-  const isSearching = searchQuery.length > 0
-  const { data: searchData, isLoading: searchIsLoading, error: searchError } = searchResults
-  const {
-    data: infiniteData,
-    isLoading: infiniteIsLoading,
-    hasNextPage,
-    fetchNextPage,
-    isFetchingNextPage,
-  } = infiniteAllDrinks
+  // Determine which data to show
+  let drinks: DrinkPreview[] = []
+  let isLoading = false
+  let error = null
+  let hasMore = false
+  let isFetchingNextPage = false
 
-  // Combine all paginated drinks
-  const allInfiniteDrinks = useMemo(() => {
-    if (!infiniteData) return []
-    return infiniteData.pages.flatMap(page => page.drinks)
-  }, [infiniteData])
-
-  // Choose data based on search state
-  const drinks = isSearching ? searchData : allInfiniteDrinks
-  const isLoading = isSearching ? searchIsLoading : infiniteIsLoading
-  const error = isSearching ? searchError : null
-
-  const playerInventory = useAppSelector((state: RootState) => state.game.inventory)
+  if (filterType === 'search') {
+    drinks = searchQuery.data || []
+    isLoading = searchQuery.isLoading
+    error = searchQuery.error
+  } else if (filterType === 'ingredient') {
+    drinks = ingredientQuery.data || []
+    isLoading = ingredientQuery.isLoading
+    error = ingredientQuery.error
+  } else if (filterType === 'category') {
+    drinks = categoryQuery.data || []
+    isLoading = categoryQuery.isLoading
+    error = categoryQuery.error
+  } else {
+    // Default: Infinite scroll of all drinks
+    drinks = infiniteAllDrinks.data?.pages.flatMap(page => page.drinks) || []
+    isLoading = infiniteAllDrinks.isLoading
+    error = infiniteAllDrinks.error
+    hasMore = !!infiniteAllDrinks.hasNextPage
+    isFetchingNextPage = infiniteAllDrinks.isFetchingNextPage
+  }
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
     const query = formData.get('search') as string
-    setSearchQuery(query.trim())
-    setSelectedIngredients(new Set()) // Reset filters
-  }
-
-  const closeDrawer = () => {
-    setSelectedDrink(null)
-  }
-
-  // Get all unique ingredients from drinks
-  const allIngredients = useMemo(() => {
-    if (!drinks) return []
-    const ingredientsSet = new Set<string>()
-    drinks.forEach(drink => {
-      drink.ingredients.forEach(ing => {
-        ingredientsSet.add(ing.name)
-      })
-    })
-    return Array.from(ingredientsSet).sort()
-  }, [drinks])
-
-  // Get all unique categories from drinks
-  const allCategories = useMemo(() => {
-    if (!drinks) return []
-    const categoriesSet = new Set<string>()
-    drinks.forEach(drink => {
-      categoriesSet.add(drink.category)
-    })
-    return Array.from(categoriesSet).sort()
-  }, [drinks])
-
-  // Toggle ingredient filter
-  const toggleIngredientFilter = (ingredient: string) => {
-    const newSet = new Set(selectedIngredients)
-    if (newSet.has(ingredient)) {
-      newSet.delete(ingredient)
+    if (query.trim()) {
+      setFilterType('search')
+      setFilterValue(query.trim())
     } else {
-      newSet.add(ingredient)
+      setFilterType('all')
+      setFilterValue('')
     }
-    setSelectedIngredients(newSet)
   }
 
-  // Toggle category filter
-  const toggleCategoryFilter = (category: string) => {
-    const newSet = new Set(selectedCategories)
-    if (newSet.has(category)) {
-      newSet.delete(category)
+  const handleFilterSelect = (type: 'ingredient' | 'category', value: string) => {
+    if (filterType === type && filterValue === value) {
+      setFilterType('all')
+      setFilterValue('')
     } else {
-      newSet.add(category)
+      setFilterType(type)
+      setFilterValue(value)
     }
-    setSelectedCategories(newSet)
   }
-
-  // Filter and sort drinks
-  const filteredAndSortedDrinks = useMemo(() => {
-    if (!drinks) return []
-
-    // Filter by selected ingredients (must contain ALL selected ingredients) and categories
-    const result = drinks.filter(drink => {
-      // Filter by ingredients
-      if (selectedIngredients.size > 0) {
-        const hasAllIngredients = Array.from(selectedIngredients).every(selectedIng =>
-          drink.ingredients.some(
-            drinkIng => drinkIng.name.toLowerCase() === selectedIng.toLowerCase()
-          )
-        )
-        if (!hasAllIngredients) return false
-      }
-
-      // Filter by category
-      if (selectedCategories.size > 0) {
-        if (!selectedCategories.has(drink.category)) return false
-      }
-
-      return true
-    })
-
-    // Sort
-    if (sortBy === 'name') {
-      result.sort((a, b) => a.name.localeCompare(b.name))
-    } else if (sortBy === 'missing') {
-      result.sort((a, b) => {
-        const aCount = a.ingredients.filter(
-          ing =>
-            !playerInventory.some((inv: string) => inv.toLowerCase() === ing.name.toLowerCase())
-        ).length
-        const bCount = b.ingredients.filter(
-          ing =>
-            !playerInventory.some((inv: string) => inv.toLowerCase() === ing.name.toLowerCase())
-        ).length
-        return aCount - bCount
-      })
-    }
-
-    return result
-  }, [drinks, selectedIngredients, selectedCategories, sortBy, playerInventory])
 
   // Infinite scroll observer
   const handleIntersection = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage && !isSearching) {
-      fetchNextPage()
+    if (
+      filterType === 'all' &&
+      infiniteAllDrinks.hasNextPage &&
+      !infiniteAllDrinks.isFetchingNextPage
+    ) {
+      infiniteAllDrinks.fetchNextPage()
     }
-  }, [hasNextPage, isFetchingNextPage, isSearching, fetchNextPage])
+  }, [filterType, infiniteAllDrinks])
 
   useEffect(() => {
     const target = observerTarget.current
@@ -196,7 +153,7 @@ function DrinksPage() {
       />
 
       <div className="max-w-6xl mx-auto relative z-10">
-        {/* Header with worn notebook style */}
+        {/* Header */}
         <div className="mb-12 text-center">
           <div className="inline-block mb-6 p-6 bg-base-100 border-4 border-base-content/20 rounded-xl shadow-xl transform -rotate-1">
             <Wine size={48} className="text-primary mx-auto mb-3" />
@@ -214,13 +171,90 @@ function DrinksPage() {
               type="text"
               name="search"
               placeholder="Search cocktails..."
-              defaultValue={searchQuery}
               className="input input-bordered flex-1"
             />
             <button type="submit" className="btn btn-primary">
               Search
             </button>
           </form>
+        </div>
+
+        {/* Filters Section */}
+        <div className="mb-12 space-y-6 bg-base-100 border-2 border-base-content/10 rounded-lg p-6">
+          {/* Categories */}
+          <div>
+            <h3 className="font-semibold text-lg mb-3">Categories</h3>
+            {categoriesQuery.isLoading ? (
+              <div className="flex gap-2">
+                <span className="loading loading-dots loading-sm"></span>
+              </div>
+            ) : (
+              <div className="flex gap-2 flex-wrap max-h-32 overflow-y-auto">
+                {categoriesQuery.data?.map(category => (
+                  <button
+                    key={category}
+                    onClick={() => handleFilterSelect('category', category)}
+                    className={`badge badge-lg cursor-pointer transition-all hover:scale-105 ${
+                      filterType === 'category' && filterValue === category
+                        ? 'badge-primary'
+                        : 'badge-outline'
+                    }`}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Ingredients */}
+          <div>
+            <h3 className="font-semibold text-lg mb-3">Ingredients</h3>
+            {ingredientsQuery.isLoading ? (
+              <div className="flex gap-2">
+                <span className="loading loading-dots loading-sm"></span>
+              </div>
+            ) : (
+              <div className="flex gap-2 flex-wrap max-h-48 overflow-y-auto">
+                {ingredientsQuery.data?.map(ingredient => (
+                  <button
+                    key={ingredient}
+                    onClick={() => handleFilterSelect('ingredient', ingredient)}
+                    className={`badge badge-lg cursor-pointer transition-all hover:scale-105 ${
+                      filterType === 'ingredient' && filterValue === ingredient
+                        ? 'badge-primary'
+                        : 'badge-outline'
+                    }`}
+                  >
+                    {ingredient}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {filterType !== 'all' && (
+            <button
+              onClick={() => {
+                setFilterType('all')
+                setFilterValue('')
+              }}
+              className="btn btn-sm btn-ghost text-error"
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
+
+        {/* Results Status */}
+        <div className="mb-6 flex justify-between items-center">
+          <h2 className="text-2xl font-bold font-serif">
+            {filterType === 'all' && 'All Cocktails'}
+            {filterType === 'search' && `Search: "${filterValue}"`}
+            {filterType === 'category' && `Category: ${filterValue}`}
+            {filterType === 'ingredient' && `Ingredient: ${filterValue}`}
+          </h2>
+          <span className="badge badge-ghost">{drinks.length} results</span>
         </div>
 
         {/* Loading State */}
@@ -238,160 +272,63 @@ function DrinksPage() {
         )}
 
         {/* No Results */}
-        {!isLoading && !error && (!drinks || drinks.length === 0) && (
+        {!isLoading && !error && drinks.length === 0 && (
           <div className="text-center py-12">
             <p className="text-base-content/60 text-lg">
-              No cocktails found. Try a different search!
+              No cocktails found. Try a different search or filter!
             </p>
           </div>
         )}
 
-        {/* Stats Bar */}
-        {drinks && drinks.length > 0 && (
-          <div className="grid grid-cols-3 gap-4 mb-12">
-            <StatsCard
-              icon={<BookOpen size={24} />}
-              label="Recipes"
-              value={filteredAndSortedDrinks.length}
-            />
-            <StatsCard
-              icon={<Wine size={24} />}
-              label="Category"
-              value={drinks[0]?.category || 'N/A'}
-            />
-            <StatsCard
-              icon={<Zap size={24} />}
-              label="Ingredients"
-              value={drinks[0]?.ingredients.length || 0}
-            />
-          </div>
-        )}
-
-        {/* Filter & Sort Section */}
-        {drinks && drinks.length > 0 && (
-          <div className="mb-12 space-y-6 bg-base-100 border-2 border-base-content/10 rounded-lg p-6">
-            {/* Sort Options */}
-            <div>
-              <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                <Zap size={20} />
-                Sort By
-              </h3>
-              <div className="flex gap-3 flex-wrap">
-                <button
-                  onClick={() => setSortBy('name')}
-                  className={`btn btn-sm ${sortBy === 'name' ? 'btn-primary' : 'btn-outline'}`}
-                >
-                  Name (A-Z)
-                </button>
-                <button
-                  onClick={() => setSortBy('missing')}
-                  className={`btn btn-sm ${sortBy === 'missing' ? 'btn-primary' : 'btn-outline'}`}
-                >
-                  Missing Ingredients
-                </button>
-              </div>
+        {/* Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {drinks.map((drink, index) => (
+            <div key={drink.id} onClick={() => setSelectedDrinkId(drink.id)} className="block">
+              <DrinkCard drink={drink} index={index} />
             </div>
+          ))}
+        </div>
 
-            {/* Category Filter */}
-            {allCategories.length > 0 && (
-              <div>
-                <h3 className="font-semibold text-lg mb-3">Filter by Category</h3>
-                <div className="flex gap-2 flex-wrap">
-                  the cards to show the difficulty, image and names, and when you
-                  {allCategories.map(category => (
-                    <button
-                      key={category}
-                      onClick={() => toggleCategoryFilter(category)}
-                      className={`badge badge-lg cursor-pointer transition-all ${
-                        selectedCategories.has(category) ? 'badge-primary' : 'badge-outline'
-                      }`}
-                    >
-                      {category}
-                    </button>
-                  ))}
-                </div>
-                {selectedCategories.size > 0 && (
-                  <button
-                    onClick={() => setSelectedCategories(new Set())}
-                    className="btn btn-sm btn-outline mt-3"
-                  >
-                    Clear Category Filters
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* Ingredient Filter */}
-            {allIngredients.length > 0 && (
-              <div>
-                <h3 className="font-semibold text-lg mb-3">Filter by Ingredients</h3>
-                <div className="flex gap-2 flex-wrap">
-                  {allIngredients.map(ingredient => (
-                    <button
-                      key={ingredient}
-                      onClick={() => toggleIngredientFilter(ingredient)}
-                      className={`badge badge-lg cursor-pointer transition-all ${
-                        selectedIngredients.has(ingredient) ? 'badge-primary' : 'badge-outline'
-                      }`}
-                    >
-                      {ingredient}
-                    </button>
-                  ))}
-                </div>
-                {selectedIngredients.size > 0 && (
-                  <button
-                    onClick={() => setSelectedIngredients(new Set())}
-                    className="btn btn-sm btn-outline mt-3"
-                  >
-                    Clear Ingredient Filters
-                  </button>
-                )}
-              </div>
-            )}
+        {/* Infinite Scroll Loader */}
+        {filterType === 'all' && (
+          <div ref={observerTarget} className="flex justify-center py-8">
+            {isFetchingNextPage ? (
+              <span className="loading loading-spinner loading-lg text-primary"></span>
+            ) : !hasMore && drinks.length > 0 ? (
+              <p className="text-base-content/60 text-sm">No more cocktails to load</p>
+            ) : null}
           </div>
-        )}
-        {drinks && drinks.length > 0 && (
-          <>
-            {filteredAndSortedDrinks.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-base-content/60 text-lg">
-                  No cocktails match your filters. Try adjusting your selection!
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredAndSortedDrinks.map((drink, index) => (
-                    <div key={drink.id} onClick={() => setSelectedDrink(drink)} className="block">
-                      <DrinkCard drink={drink} index={index} />
-                    </div>
-                  ))}
-                </div>
-
-                {/* Infinite Scroll Observer */}
-                <div ref={observerTarget} className="flex justify-center py-8">
-                  {isFetchingNextPage ? (
-                    <span className="loading loading-spinner loading-lg text-primary"></span>
-                  ) : filteredAndSortedDrinks.length > 0 &&
-                    !isSearching &&
-                    hasNextPage === false ? (
-                    <p className="text-base-content/60 text-sm">No more cocktails to load</p>
-                  ) : null}
-                </div>
-              </>
-            )}
-          </>
         )}
 
         {/* Drink Detail Drawer */}
-        {selectedDrink && (
-          <DrinkDetailDrawer
-            drink={selectedDrink}
+        {selectedDrinkId && (
+          <DrinkDetailContainer
+            drinkId={selectedDrinkId}
             playerInventory={playerInventory}
-            onClose={closeDrawer}
+            onClose={() => setSelectedDrinkId(null)}
             isCraftingForNPC={craftingState.isCraftingForNPC}
             craftingNPCName={craftingState.currentNPCName || undefined}
             craftingNPCId={craftingState.currentNPCId || undefined}
+            currentStopIndex={adventureState.currentStopIndex}
+            totalStops={adventureState.routeData?.stopPoints.length || 5}
+            onShowSuccessModal={setShowSuccessModal}
+          />
+        )}
+
+        {/* Success Modal */}
+        {showSuccessModal && (
+          <NPCSuccessModal
+            isOpen={!!showSuccessModal}
+            npcName={showSuccessModal.npcName}
+            drinkName={showSuccessModal.drinkName}
+            currentStop={showSuccessModal.currentStop}
+            totalStops={showSuccessModal.totalStops}
+            onAdvance={() => {
+              dispatch(advanceToNextStop())
+              setSelectedDrinkId(null)
+              setShowSuccessModal(null)
+              navigate({ to: '/adventure' })
+            }}
           />
         )}
       </div>
@@ -399,26 +336,8 @@ function DrinksPage() {
   )
 }
 
-interface StatsCardProps {
-  icon: React.ReactNode
-  label: string
-  value: string | number
-}
-
-function StatsCard({ icon, label, value }: StatsCardProps) {
-  return (
-    <div className="card bg-base-100 border-2 border-base-content/10 shadow-md">
-      <div className="card-body items-center text-center p-4">
-        <div className="text-primary mb-2">{icon}</div>
-        <p className="text-sm text-base-content/60">{label}</p>
-        <p className="text-2xl font-bold text-primary">{value}</p>
-      </div>
-    </div>
-  )
-}
-
 interface DrinkCardProps {
-  drink: Drink
+  drink: DrinkPreview
   index: number
 }
 
@@ -438,44 +357,69 @@ function DrinkCard({ drink, index }: DrinkCardProps) {
         }}
       />
 
-      <div className="card-body relative z-10 space-y-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1">
-            <h2 className="card-title text-2xl font-serif text-primary mb-1">{drink.name}</h2>
-            <p className="text-sm text-base-content/60 italic">{drink.category}</p>
-          </div>
+      <div className="card-body relative z-10 space-y-3 p-4">
+        <div className="aspect-square rounded-lg overflow-hidden border-2 border-base-300 mb-2">
+          <img
+            src={drink.image}
+            alt={drink.name}
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
         </div>
 
-        <div className="divider my-2" />
-        <div className="flex gap-2 flex-wrap text-xs">
-          <span className="badge badge-outline">{drink.glass}</span>
-          <span className="badge badge-outline">{drink.alcoholic}</span>
-        </div>
+        <h2 className="card-title text-xl font-serif text-primary leading-tight">{drink.name}</h2>
 
-        <p className="text-sm text-base-content/70 line-clamp-2 italic">"{drink.instructions}"</p>
-
-        <div className="bg-base-200/50 rounded p-3 border border-base-300/50">
-          <p className="text-xs font-semibold text-base-content/80 mb-2">
-            Ingredients ({drink.ingredients.length}):
-          </p>
-          <ul className="text-xs text-base-content/70 space-y-1">
-            {drink.ingredients.slice(0, 3).map(ingredient => (
-              <li key={ingredient.name}>
-                • {ingredient.name} {ingredient.measure ? `- ${ingredient.measure}` : ''}
-              </li>
-            ))}
-            {drink.ingredients.length > 3 && (
-              <li className="text-primary/80 italic">+ {drink.ingredients.length - 3} more</li>
-            )}
-          </ul>
-        </div>
-
-        <div className="flex items-center justify-between pt-2">
-          <span className="text-xs text-primary/60 font-serif italic">ID: {drink.id}</span>
+        <div className="flex items-center justify-between pt-2 mt-auto">
+          <span className="text-xs text-base-content/60">Click for recipe</span>
+          <span className="text-xs text-primary/40 font-mono">#{drink.id}</span>
         </div>
       </div>
     </div>
   )
+}
+
+interface DrinkDetailContainerProps {
+  drinkId: string
+  playerInventory: string[]
+  onClose: () => void
+  isCraftingForNPC: boolean
+  craftingNPCName?: string
+  craftingNPCId?: string
+  currentStopIndex: number
+  totalStops: number
+  onShowSuccessModal: (data: {
+    npcName: string
+    drinkName: string
+    currentStop: number
+    totalStops: number
+  }) => void
+}
+
+function DrinkDetailContainer(props: DrinkDetailContainerProps) {
+  const { data: drink, isLoading, error } = useCocktailByIdAction(props.drinkId)
+
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+        <span className="loading loading-spinner loading-lg text-white"></span>
+      </div>
+    )
+  }
+
+  if (error || !drink) {
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+        <div className="bg-base-100 p-6 rounded-lg">
+          <p className="text-error">Failed to load drink details.</p>
+          <button onClick={props.onClose} className="btn btn-sm mt-4">
+            Close
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return <DrinkDetailDrawer drink={drink} {...props} />
 }
 
 interface DrinkDetailDrawerProps {
@@ -485,6 +429,14 @@ interface DrinkDetailDrawerProps {
   isCraftingForNPC: boolean
   craftingNPCName?: string
   craftingNPCId?: string
+  currentStopIndex: number
+  totalStops: number
+  onShowSuccessModal: (data: {
+    npcName: string
+    drinkName: string
+    currentStop: number
+    totalStops: number
+  }) => void
 }
 
 function DrinkDetailDrawer({
@@ -494,8 +446,10 @@ function DrinkDetailDrawer({
   isCraftingForNPC,
   craftingNPCName,
   craftingNPCId,
+  currentStopIndex,
+  totalStops,
+  onShowSuccessModal,
 }: DrinkDetailDrawerProps) {
-  const navigate = useNavigate()
   const dispatch = useAppDispatch()
 
   const drinkIngredients = drink.ingredients.map(ingredient => ({
@@ -517,7 +471,15 @@ function DrinkDetailDrawer({
     })
 
     if (isCraftingForNPC && craftingNPCId && craftingNPCName) {
-      // Complete NPC and return to adventure
+      // Show success modal instead of immediate navigation
+      onShowSuccessModal({
+        npcName: craftingNPCName,
+        drinkName: drink.name,
+        currentStop: currentStopIndex + 1,
+        totalStops,
+      })
+
+      // Dispatch the NPC completion and crafting completion
       dispatch(
         completeNPC({
           npcId: craftingNPCId,
@@ -527,7 +489,6 @@ function DrinkDetailDrawer({
         })
       )
       dispatch(completeCrafting())
-      navigate({ to: '/adventure' })
     }
   }
 
@@ -537,10 +498,10 @@ function DrinkDetailDrawer({
       <div className="fixed inset-0 bg-black/50 z-40 transition-opacity" onClick={onClose} />
 
       {/* Drawer from right */}
-      <div className="fixed right-0 top-0 h-full w-full max-w-lg bg-base-100 shadow-2xl z-50 overflow-y-auto">
+      <div className="fixed right-0 top-0 h-full w-full max-w-lg bg-base-100 shadow-2xl z-50 overflow-y-auto animate-in slide-in-from-right duration-300">
         {/* Close button */}
-        <div className="sticky top-0 flex items-center justify-between p-4 bg-base-100 border-b border-base-300">
-          <h2 className="text-2xl font-serif font-bold text-primary">{drink.name}</h2>
+        <div className="sticky top-0 flex items-center justify-between p-4 bg-base-100 border-b border-base-300 z-10">
+          <h2 className="text-2xl font-serif font-bold text-primary truncate pr-4">{drink.name}</h2>
           <button onClick={onClose} className="btn btn-ghost btn-circle btn-sm">
             <X size={24} />
           </button>
@@ -560,7 +521,7 @@ function DrinkDetailDrawer({
 
           {/* Drink Image */}
           {drink.image && (
-            <div className="rounded-lg overflow-hidden border-2 border-base-300">
+            <div className="rounded-lg overflow-hidden border-2 border-base-300 shadow-md">
               <img src={drink.image} alt={drink.name} className="w-full h-64 object-cover" />
             </div>
           )}
@@ -569,22 +530,30 @@ function DrinkDetailDrawer({
           <div className="grid grid-cols-3 gap-2">
             <div className="bg-base-200 rounded p-3 text-center">
               <p className="text-xs text-base-content/60">Glass</p>
-              <p className="text-sm font-semibold text-primary">{drink.glass}</p>
+              <p className="text-sm font-semibold text-primary truncate" title={drink.glass}>
+                {drink.glass}
+              </p>
             </div>
             <div className="bg-base-200 rounded p-3 text-center">
               <p className="text-xs text-base-content/60">Type</p>
-              <p className="text-sm font-semibold text-primary">{drink.alcoholic}</p>
+              <p className="text-sm font-semibold text-primary truncate" title={drink.alcoholic}>
+                {drink.alcoholic}
+              </p>
             </div>
             <div className="bg-base-200 rounded p-3 text-center">
               <p className="text-xs text-base-content/60">Category</p>
-              <p className="text-sm font-semibold text-primary">{drink.category}</p>
+              <p className="text-sm font-semibold text-primary truncate" title={drink.category}>
+                {drink.category}
+              </p>
             </div>
           </div>
 
           {/* Instructions */}
           <div>
             <h3 className="font-semibold text-lg mb-2 font-serif">Instructions</h3>
-            <p className="text-base-content/80 leading-relaxed italic">{drink.instructions}</p>
+            <p className="text-base-content/80 leading-relaxed italic bg-base-200/30 p-4 rounded-lg border border-base-200">
+              {drink.instructions}
+            </p>
           </div>
 
           {/* Craftability Status */}
@@ -649,7 +618,7 @@ function DrinkDetailDrawer({
           {/* Craft Button */}
           <button
             onClick={handleCraft}
-            className={`btn w-full ${canCraft ? 'btn-success' : 'btn-disabled'}`}
+            className={`btn w-full btn-lg ${canCraft ? 'btn-success' : 'btn-disabled'}`}
           >
             {canCraft
               ? isCraftingForNPC

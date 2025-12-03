@@ -15,7 +15,7 @@ export function NPCServingPanel() {
       <div className="card bg-base-200 shadow-lg">
         <div className="card-body text-center py-8">
           <p className="text-base-content/60 italic">No customer to serve yet...</p>
-          <p className="text-xs text-base-content/50 mt-2">Draw a card or advance to next stop</p>
+          <p className="text-xs text-base-content/50 mt-2">Draw a card to get ingredients</p>
         </div>
       </div>
     )

@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useAppDispatch, useAppSelector } from '../app/hooks'
-import { advanceToNextStop, addDrawnCard } from '../features/adventure/adventureSlice'
+import { addDrawnCard } from '../features/adventure/adventureSlice'
 import { addIngredient } from '../features/game/gameSlice'
 import { useDrawCardAction } from '../actions/useAdventureQueries'
+import { RotateCcw } from 'lucide-react'
 
 export function CardDraw() {
   const dispatch = useAppDispatch()
@@ -39,13 +40,16 @@ export function CardDraw() {
     }
   }
 
-  const handleNextStop = () => {
-    dispatch(advanceToNextStop())
+  const handleDrawAnother = () => {
     setShowCard(false)
     setLastCard(null)
   }
 
   const isLastStop = currentStopIndex >= stopPoints.length
+
+  if (isLastStop) {
+    return null
+  }
 
   return (
     <div className="card bg-base-200 shadow-lg">
@@ -71,25 +75,18 @@ export function CardDraw() {
 
             <div className="divider my-2" />
 
-            {!isLastStop ? (
-              <button className="btn btn-primary w-full" onClick={handleNextStop}>
-                Continue to Next Stop ({currentStopIndex + 1}/{stopPoints.length})
-              </button>
-            ) : (
-              <div className="alert alert-success">
-                <span>🎉 Adventure complete! You've visited all stops.</span>
-              </div>
-            )}
+            <button className="btn btn-outline w-full gap-2" onClick={handleDrawAnother}>
+              <RotateCcw size={16} />
+              Draw Another Card
+            </button>
           </div>
         ) : (
           <>
-            <p className="text-sm text-gray-600">
-              Stop {currentStopIndex + 1} of {stopPoints.length}
-            </p>
+            <p className="text-sm text-gray-600">Need ingredients? Draw a card from the deck!</p>
             <button
               className="btn btn-primary w-full"
               onClick={handleDrawCard}
-              disabled={drawCardAction.isPending || !deckId || isLastStop}
+              disabled={drawCardAction.isPending || !deckId}
             >
               {drawCardAction.isPending && <span className="loading loading-spinner loading-sm" />}
               {!deckId ? 'Initializing deck...' : 'Draw Card'}

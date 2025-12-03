@@ -36,10 +36,27 @@ export function useCocktailsByIngredientAction(ingredient: string) {
   })
 }
 
+export function useCocktailsByCategoryAction(category: string) {
+  return useQuery({
+    queryKey: ['cocktails', 'category', category],
+    queryFn: () => cocktailAPI.getDrinksByCategory(category),
+    enabled: category.length > 0,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  })
+}
+
 export function useCocktailCategoriesAction() {
   return useQuery({
     queryKey: ['cocktails', 'categories'],
     queryFn: () => cocktailAPI.getCategories(),
+    staleTime: 1000 * 60 * 60, // 1 hour - rarely changes
+  })
+}
+
+export function useCocktailIngredientsAction() {
+  return useQuery({
+    queryKey: ['cocktails', 'ingredients'],
+    queryFn: () => cocktailAPI.getIngredientsList(),
     staleTime: 1000 * 60 * 60, // 1 hour - rarely changes
   })
 }
@@ -56,7 +73,7 @@ export function useInfiniteAllCocktailsAction() {
   return useInfiniteQuery({
     queryKey: ['cocktails', 'infinite', 'all'],
     queryFn: ({ pageParam }) => cocktailAPI.getAllDrinksPaginated(pageParam),
-    initialPageParam: { categoryIndex: 0, page: 0 },
+    initialPageParam: { letterIndex: 0 },
     getNextPageParam: lastPage => lastPage.nextPage,
     staleTime: 1000 * 60 * 30, // 30 minutes
   })
