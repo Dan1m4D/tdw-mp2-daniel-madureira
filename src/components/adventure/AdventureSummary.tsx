@@ -1,11 +1,11 @@
 import { Sparkles, Wine, RotateCcw } from 'lucide-react'
 import { useNavigate } from '@tanstack/react-router'
-import { useAppDispatch, useAppSelector } from '../app/hooks'
-import { resetAdventure } from '../features/adventure/adventureSlice'
-import { resetCrafting } from '../features/crafting/craftingSlice'
-import { clearCurrentNPC } from '../features/npc/npcSlice'
-import { startGame } from '../features/game/gameSlice'
-import type { RootState } from '../app/store'
+import { useAppDispatch, useAppSelector } from '../../app/hooks'
+import { resetAdventure } from '../../features/adventure/adventureSlice'
+import { resetCrafting } from '../../features/crafting/craftingSlice'
+import { clearCurrentNPC } from '../../features/npc/npcSlice'
+import { startGame } from '../../features/game/gameSlice'
+import type { RootState } from '../../app/store'
 
 export function AdventureSummary() {
   const navigate = useNavigate()
@@ -34,7 +34,7 @@ export function AdventureSummary() {
 
   return (
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-      <div className="bg-base-100 rounded-xl shadow-2xl max-w-2xl w-full max-h-96 overflow-y-auto">
+      <div className="bg-base-100 rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
         {/* Confetti-like celebration */}
         <div className="text-center py-8 bg-linear-to-r from-primary/10 to-accent/10">
           <Sparkles size={48} className="mx-auto mb-3 text-primary animate-bounce" />

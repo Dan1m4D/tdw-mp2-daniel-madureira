@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { useAppDispatch, useAppSelector } from '../app/hooks'
-import { drawCardAndGetIngredient, advanceToNextStop } from '../features/adventure/adventureSlice'
-import { addIngredient } from '../features/game/gameSlice'
-import type { Card } from '../services/cardsAPI'
+import { useAppDispatch, useAppSelector } from '../../app/hooks'
+import { addDrawnCard } from '../../features/adventure/adventureSlice'
+import { addIngredient } from '../../features/game/gameSlice'
+import { useDrawCardAction } from '../../actions/useAdventureQueries'
+import { RotateCcw } from 'lucide-react'
 
 export function CardDraw() {
   const dispatch = useAppDispatch()
@@ -14,36 +15,41 @@ export function CardDraw() {
   } | null>(null)
 
   const deckId = useAppSelector(state => state.adventure.deckId)
-  const loading = useAppSelector(state => state.adventure.loading)
   const currentStopIndex = useAppSelector(state => state.adventure.currentStopIndex)
   const stopPoints = useAppSelector(state => state.adventure.routeData?.stopPoints || [])
+
+  const drawCardAction = useDrawCardAction()
 
   const handleDrawCard = async () => {
     if (!deckId) return
 
-    const result = await dispatch(drawCardAndGetIngredient(deckId))
-
-    if (result.payload && typeof result.payload === 'object' && 'ingredient' in result.payload) {
-      const { card, ingredient } = result.payload as { card: Card; ingredient: string }
+    try {
+      const drawnCard = await drawCardAction.mutateAsync(deckId)
       setLastCard({
-        image: card.images.png,
-        ingredient,
-        cardName: `${card.value} of ${card.suit}`,
+        image: drawnCard.card.images.png,
+        ingredient: drawnCard.ingredient,
+        cardName: `${drawnCard.card.value} of ${drawnCard.card.suit}`,
       })
       setShowCard(true)
 
       // Add ingredient to inventory
-      dispatch(addIngredient(ingredient))
+      dispatch(addIngredient(drawnCard.ingredient))
+      dispatch(addDrawnCard(drawnCard))
+    } catch (error) {
+      console.error('Failed to draw card:', error)
     }
   }
 
-  const handleNextStop = () => {
-    dispatch(advanceToNextStop())
+  const handleDrawAnother = () => {
     setShowCard(false)
     setLastCard(null)
   }
 
   const isLastStop = currentStopIndex >= stopPoints.length
+
+  if (isLastStop) {
+    return null
+  }
 
   return (
     <div className="card bg-base-200 shadow-lg">
@@ -69,27 +75,20 @@ export function CardDraw() {
 
             <div className="divider my-2" />
 
-            {!isLastStop ? (
-              <button className="btn btn-primary w-full" onClick={handleNextStop}>
-                Continue to Next Stop ({currentStopIndex + 1}/{stopPoints.length})
-              </button>
-            ) : (
-              <div className="alert alert-success">
-                <span>🎉 Adventure complete! You've visited all stops.</span>
-              </div>
-            )}
+            <button className="btn btn-outline w-full gap-2" onClick={handleDrawAnother}>
+              <RotateCcw size={16} />
+              Draw Another Card
+            </button>
           </div>
         ) : (
           <>
-            <p className="text-sm text-gray-600">
-              Stop {currentStopIndex + 1} of {stopPoints.length}
-            </p>
+            <p className="text-sm text-gray-600">Need ingredients? Draw a card from the deck!</p>
             <button
               className="btn btn-primary w-full"
               onClick={handleDrawCard}
-              disabled={loading || !deckId || isLastStop}
+              disabled={drawCardAction.isPending || !deckId}
             >
-              {loading && <span className="loading loading-spinner loading-sm" />}
+              {drawCardAction.isPending && <span className="loading loading-spinner loading-sm" />}
               {!deckId ? 'Initializing deck...' : 'Draw Card'}
             </button>
           </>

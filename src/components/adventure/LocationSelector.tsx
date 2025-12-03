@@ -1,43 +1,66 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { MapPin, Search, Loader, Globe } from 'lucide-react'
-import { geocodeLocation, type Coordinate } from '../services/routingAPI'
+import { type Coordinate } from '../../services/routingAPI'
+import { useGeocodeLocationAction } from '../../actions/useAdventureQueries'
 
 interface LocationSelectorProps {
   onSelect: (location: Coordinate) => void
   placeholder?: string
   label?: string
+  debounceDelay?: number
+  resultsMode?: 'absolute' | 'relative'
 }
 
 export function LocationSelector({
   onSelect,
   placeholder = 'Search for a location...',
   label = 'Location',
+  debounceDelay = 500,
+  resultsMode = 'absolute',
 }: LocationSelectorProps) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Coordinate[]>([])
-  const [loading, setLoading] = useState(false)
   const [showResults, setShowResults] = useState(false)
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const handleSearch = async (searchQuery: string) => {
-    setQuery(searchQuery)
-    if (!searchQuery.trim()) {
-      setResults([])
-      setShowResults(false)
+  const geocodeAction = useGeocodeLocationAction()
+  const loading = geocodeAction.isPending
+
+  const clearQueryResults = () => {
+    setResults([])
+    setShowResults(false)
+  }
+
+  // Debounced search effect
+  useEffect(() => {
+    if (!query.trim()) {
       return
     }
 
-    setLoading(true)
-    try {
-      const locations = await geocodeLocation(searchQuery)
-      setResults(locations)
-      setShowResults(true)
-    } catch (error) {
-      console.error('Search error:', error)
-      setResults([])
-    } finally {
-      setLoading(false)
+    // Clear previous timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
     }
-  }
+
+    // Set new timer for debounced search
+    debounceTimerRef.current = setTimeout(async () => {
+      try {
+        const locations = await geocodeAction.mutateAsync(query)
+        setResults(locations)
+        setShowResults(true)
+      } catch (error) {
+        console.error('Search error:', error)
+        setResults([])
+      }
+    }, debounceDelay)
+
+    // Cleanup timer on unmount
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+    }
+  }, [query, debounceDelay]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSelectLocation = (location: Coordinate) => {
     onSelect(location)
@@ -62,7 +85,13 @@ export function LocationSelector({
             placeholder={placeholder}
             className="input input-bordered join-item w-full placeholder-base-content/40 focus:outline-primary"
             value={query}
-            onChange={e => handleSearch(e.target.value)}
+            onChange={e => {
+              const newQuery = e.target.value
+              setQuery(newQuery)
+              if (!newQuery.trim()) {
+                clearQueryResults()
+              }
+            }}
             onFocus={() => query && setShowResults(true)}
           />
           <button className="btn btn-primary join-item" disabled={loading} aria-label="Search">
@@ -72,7 +101,11 @@ export function LocationSelector({
 
         {/* Results dropdown */}
         {showResults && results.length > 0 && (
-          <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-base-100 border-2 border-primary/20 rounded-xl shadow-2xl max-h-72 overflow-y-auto">
+          <div
+            className={`${
+              resultsMode === 'absolute' ? 'absolute top-full left-0 right-0 mt-2' : 'relative mt-4'
+            } z-50 bg-base-100 border-2 border-primary/20 rounded-xl shadow-2xl max-h-72 overflow-y-auto`}
+          >
             <div className="p-2">
               {results.map((result, index) => (
                 <button
@@ -104,7 +137,11 @@ export function LocationSelector({
 
         {/* No results state */}
         {showResults && query && results.length === 0 && !loading && (
-          <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-base-100 border-2 border-warning/20 rounded-xl shadow-lg p-6 text-center">
+          <div
+            className={`${
+              resultsMode === 'absolute' ? 'absolute top-full left-0 right-0 mt-2' : 'relative mt-4'
+            } z-50 bg-base-100 border-2 border-warning/20 rounded-xl shadow-lg p-6 text-center`}
+          >
             <MapPin size={32} className="mx-auto text-warning mb-2 opacity-50" />
             <p className="text-sm font-semibold text-base-content">No locations found</p>
             <p className="text-xs text-base-content/60 mt-1">
@@ -115,7 +152,11 @@ export function LocationSelector({
 
         {/* Loading state */}
         {loading && (
-          <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-base-100 border-2 border-primary/20 rounded-xl shadow-lg p-6 text-center">
+          <div
+            className={`${
+              resultsMode === 'absolute' ? 'absolute top-full left-0 right-0 mt-2' : 'relative mt-4'
+            } z-50 bg-base-100 border-2 border-primary/20 rounded-xl shadow-lg p-6 text-center`}
+          >
             <div className="flex items-center justify-center gap-2">
               <Loader size={20} className="animate-spin text-primary" />
               <p className="text-sm font-semibold text-base-content">Searching...</p>

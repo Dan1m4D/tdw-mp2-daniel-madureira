@@ -1,28 +1,33 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Play, Wine, MapPin, AlertCircle, CheckCircle } from 'lucide-react'
+import { Wine, AlertCircle, CheckCircle } from 'lucide-react'
 import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import {
   MapView,
-  LocationDetails,
   NPCInformation,
-  LocationSelector,
   CardDraw,
   InventoryDisplay,
   NPCServingPanel,
   AdventureSummary,
 } from '../components'
+import { AdventureSetup } from '../components/adventure/AdventureSetup'
+import { AdventureRouteDetails } from '../components/adventure/AdventureRouteDetails'
+import { LocationSelectionModal } from '../components/adventure/LocationSelectionModal'
 import {
   setStartLocation,
   setEndLocation,
-  calculateRoute,
+  setRouteData,
+  setDeckId,
   resetAdventure,
-  initializeDeck,
   type AdventureState,
 } from '../features/adventure/adventureSlice'
+import {
+  useCalculateRouteAction,
+  useInitializeDeckAction,
+  useGetWeatherAction,
+} from '../actions/useAdventureQueries'
 import { type AppDispatch, type RootState } from '../app/store'
 import { type Coordinate } from '../services/routingAPI'
-import { getWeather } from '../services/weatherAPI'
 import { generateNPC, generateNewNPCFromWeather } from '../features/npc/npcSlice'
 
 export const Route = createFileRoute('/adventure')({
@@ -36,12 +41,20 @@ function Adventure() {
   const [showLocationModal, setShowLocationModal] = useState(false)
   const [selectingFor, setSelectingFor] = useState<'start' | 'end' | null>(null)
 
+  // Adventure actions
+  const calculateRouteAction = useCalculateRouteAction()
+  const initializeDeckAction = useInitializeDeckAction()
+  const getWeatherAction = useGetWeatherAction()
+
   const handleLocationSelect = async (location: Coordinate) => {
     if (selectingFor === 'start') {
       dispatch(setStartLocation(location))
       // Fetch weather and generate NPC for start location
       try {
-        const weather = await getWeather(location.latitude, location.longitude)
+        const weather = await getWeatherAction.mutateAsync({
+          lat: location.latitude,
+          lng: location.longitude,
+        })
         const npc = generateNPC(weather, location.name || 'Unknown Location', inventory)
         dispatch(generateNewNPCFromWeather(npc))
       } catch (error) {
@@ -58,55 +71,39 @@ function Adventure() {
     if (!adventure.startLocation || !adventure.endLocation) {
       return
     }
-    await dispatch(
-      calculateRoute({
+
+    try {
+      const routeData = await calculateRouteAction.mutateAsync({
         start: adventure.startLocation,
         end: adventure.endLocation,
-        numStops: 3,
+        numStops: 5,
       })
-    )
-    // Initialize deck for card drawing
-    dispatch(initializeDeck())
-  }
+      dispatch(setRouteData(routeData))
 
-  const formatDistance = (meters: number) => {
-    if (meters > 1000) {
-      return `${(meters / 1000).toFixed(1)} km`
+      // Initialize deck for card drawing
+      const deckId = await initializeDeckAction.mutateAsync()
+      dispatch(setDeckId(deckId))
+    } catch (error) {
+      console.error('Failed to start adventure:', error)
     }
-    return `${Math.round(meters)} m`
-  }
-
-  const formatDuration = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600)
-    const minutes = Math.floor((seconds % 3600) / 60)
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`
-    }
-    return `${minutes}m`
   }
 
   const mapData = adventure.routeData
     ? {
-        startLocation:
-          adventure.startLocation &&
-          adventure.startLocation.latitude !== undefined &&
-          adventure.startLocation.longitude !== undefined
-            ? {
-                lat: adventure.startLocation.latitude,
-                lng: adventure.startLocation.longitude,
-                name: adventure.startLocation.name,
-              }
-            : undefined,
-        endLocation:
-          adventure.endLocation &&
-          adventure.endLocation.latitude !== undefined &&
-          adventure.endLocation.longitude !== undefined
-            ? {
-                lat: adventure.endLocation.latitude,
-                lng: adventure.endLocation.longitude,
-                name: adventure.endLocation.name,
-              }
-            : undefined,
+        startLocation: adventure.startLocation
+          ? {
+              lat: adventure.startLocation.latitude,
+              lng: adventure.startLocation.longitude,
+              name: adventure.startLocation.name,
+            }
+          : undefined,
+        endLocation: adventure.endLocation
+          ? {
+              lat: adventure.endLocation.latitude,
+              lng: adventure.endLocation.longitude,
+              name: adventure.endLocation.name,
+            }
+          : undefined,
         stopPoints: adventure.routeData.stopPoints.map(stop => ({
           lat: stop.latitude,
           lng: stop.longitude,
@@ -117,273 +114,162 @@ function Adventure() {
     : null
 
   return (
-    <div className="min-h-[calc(100vh-120px)] py-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-[calc(100vh-120px)] py-4 md:py-8 bg-base-100">
+      <div className="max-w-7xl mx-auto px-4">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8 gap-4">
-          <div>
-            <h1 className="text-4xl font-bold mb-2">Adventure Mode</h1>
-            <p className="text-base-content/70">Your journey through time and flavor</p>
+        <div className="flex flex-col md:flex-row items-center justify-between mb-6 md:mb-8 gap-4">
+          <div className="text-center md:text-left">
+            <h1 className="text-3xl md:text-4xl font-bold mb-2 font-serif text-primary">
+              Adventure Mode
+            </h1>
+            <p className="text-base-content/70 text-sm md:text-base">
+              Your journey through time and flavor
+            </p>
           </div>
-          <div className="badge badge-lg badge-primary gap-2">
-            <span className="loading loading-spinner loading-sm"></span>
-            {adventure.status === 'idle' ? 'Ready' : adventure.status}
+          <div className="badge badge-lg badge-primary gap-2 p-4 shadow-md w-full md:w-auto justify-center">
+            <span className="font-semibold uppercase tracking-wider text-sm">
+              {adventure.status === 'idle' ? 'Ready to Start' : adventure.status}
+            </span>
           </div>
         </div>
 
         {/* Error Alert */}
-        {adventure.error && (
-          <div className="alert alert-error mb-6">
+        {(calculateRouteAction.error || initializeDeckAction.error || getWeatherAction.error) && (
+          <div className="alert alert-error mb-6 md:mb-8 shadow-lg">
             <AlertCircle size={20} />
-            <span>{adventure.error}</span>
+            <span>
+              {calculateRouteAction.error?.message ||
+                initializeDeckAction.error?.message ||
+                getWeatherAction.error?.message ||
+                'An error occurred'}
+            </span>
           </div>
         )}
 
-        {/* Main Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Map & Location (Main Content) */}
-          <div className="lg:col-span-3 space-y-6">
-            <MapView
-              startLocation={mapData?.startLocation}
-              endLocation={mapData?.endLocation}
-              stopPoints={mapData?.stopPoints}
-              route={mapData?.route}
-            />
-
-            {/* Route Details */}
-            {adventure.routeData && (
-              <div className="card bg-base-200 border border-base-300 shadow-lg">
-                <div className="card-body">
-                  <h2 className="card-title flex items-center gap-2">
-                    <MapPin size={20} className="text-primary" />
-                    Route Details
-                  </h2>
-                  <div className="divider my-2" />
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-sm text-base-content/60">Distance</p>
-                      <p className="text-lg font-semibold">
-                        {formatDistance(adventure.routeData.totalDistance)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-base-content/60">Duration</p>
-                      <p className="text-lg font-semibold">
-                        {formatDuration(adventure.routeData.totalDuration)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-base-content/60">Stops</p>
-                      <p className="text-lg font-semibold">
-                        {adventure.routeData.stopPoints.length}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Stop Points List */}
-                  <div className="mt-4">
-                    <h3 className="font-semibold mb-3">Suggested Stops</h3>
-                    <div className="space-y-2">
-                      {adventure.routeData.stopPoints.map((stop, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center gap-3 p-2 bg-base-100 rounded-lg"
-                        >
-                          <div className="badge badge-primary">{index + 1}</div>
-                          <div>
-                            <p className="font-semibold text-sm">{stop.name}</p>
-                            <p className="text-xs text-base-content/60">
-                              {stop.latitude.toFixed(4)}, {stop.longitude.toFixed(4)}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <LocationDetails />
+        {/* Map Section - Full Width */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
+          {/* Map Area */}
+          <div className="lg:col-span-8 rounded-2xl overflow-hidden shadow-2xl border-4 border-base-300 bg-base-200 h-[300px] md:h-[400px] relative group order-2 lg:order-1">
+            <div className="absolute inset-0 z-0">
+              <MapView
+                startLocation={mapData?.startLocation}
+                endLocation={mapData?.endLocation}
+                stopPoints={mapData?.stopPoints}
+                route={mapData?.route}
+                currentStopIndex={adventure.currentStopIndex}
+              />
+            </div>
+            <div className="absolute inset-0 pointer-events-none border-4 border-base-content/5 rounded-2xl"></div>
           </div>
 
-          {/* Sidebar: Actions & NPC */}
-          <div className="space-y-6">
-            {/* Location Selection */}
-            {adventure.status === 'idle' && (
-              <div className="card bg-base-200 border border-base-300 shadow-lg">
-                <div className="card-body">
-                  <h2 className="card-title text-lg">Plan Your Route</h2>
-                  <div className="divider my-2" />
-
-                  {/* Start Location */}
-                  <div className="form-control w-full">
-                    <label className="label">
-                      <span className="label-text font-semibold">Start Location</span>
-                    </label>
-                    {adventure.startLocation ? (
-                      <div className="p-3 bg-base-100 rounded-lg border border-success">
-                        <p className="font-semibold text-sm">{adventure.startLocation.name}</p>
-                        <p className="text-xs text-base-content/60">
-                          {adventure.startLocation.latitude.toFixed(4)},{' '}
-                          {adventure.startLocation.longitude.toFixed(4)}
-                        </p>
-                        <button
-                          onClick={() => {
-                            setSelectingFor('start')
-                            setShowLocationModal(true)
-                          }}
-                          className="btn btn-xs btn-ghost w-full mt-2"
-                        >
-                          Change
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          setSelectingFor('start')
-                          setShowLocationModal(true)
-                        }}
-                        className="btn btn-sm btn-outline gap-2"
-                      >
-                        <MapPin size={16} />
-                        Select Start
-                      </button>
-                    )}
-                  </div>
-
-                  {/* End Location */}
-                  <div className="form-control w-full mt-4">
-                    <label className="label">
-                      <span className="label-text font-semibold">End Location</span>
-                    </label>
-                    {adventure.endLocation ? (
-                      <div className="p-3 bg-base-100 rounded-lg border border-error">
-                        <p className="font-semibold text-sm">{adventure.endLocation.name}</p>
-                        <p className="text-xs text-base-content/60">
-                          {adventure.endLocation.latitude.toFixed(4)},{' '}
-                          {adventure.endLocation.longitude.toFixed(4)}
-                        </p>
-                        <button
-                          onClick={() => {
-                            setSelectingFor('end')
-                            setShowLocationModal(true)
-                          }}
-                          className="btn btn-xs btn-ghost w-full mt-2"
-                        >
-                          Change
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          setSelectingFor('end')
-                          setShowLocationModal(true)
-                        }}
-                        className="btn btn-sm btn-outline gap-2"
-                      >
-                        <MapPin size={16} />
-                        Select End
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Start Button */}
-                  <button
-                    onClick={handleStartAdventure}
-                    disabled={
-                      !adventure.startLocation || !adventure.endLocation || adventure.loading
-                    }
-                    className="btn btn-primary w-full gap-2 mt-4"
-                  >
-                    {adventure.loading ? (
-                      <>
-                        <span className="loading loading-spinner loading-sm"></span>
-                        Planning Route...
-                      </>
-                    ) : (
-                      <>
-                        <Play size={20} />
-                        Start Adventure
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Route Planned */}
-            {adventure.status !== 'idle' && adventure.routeData && (
-              <div className="card bg-base-200 border-2 border-success shadow-lg">
-                <div className="card-body">
-                  <div className="flex items-center gap-2 mb-4">
-                    <CheckCircle size={24} className="text-success" />
-                    <h2 className="card-title text-lg">Route Ready!</h2>
-                  </div>
-                  <button
-                    onClick={() => dispatch(resetAdventure())}
-                    className="btn btn-outline w-full"
-                  >
-                    Plan New Route
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* NPC Information */}
+          {/* NPC Area (Top Right) */}
+          <div className="lg:col-span-4 h-auto min-h-[300px] md:h-[400px] overflow-y-auto rounded-2xl shadow-xl border border-base-300 bg-base-200 order-1 lg:order-2">
             <NPCInformation />
+          </div>
+        </div>
 
-            {/* NPC Serving Panel */}
+        {/* Dashboard Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
+          {/* Column 1: Journey & Logistics */}
+          <div className="space-y-4 md:space-y-6">
+            {/* Route Planning (Idle) */}
+            {adventure.status === 'idle' && (
+              <AdventureSetup
+                adventure={adventure}
+                onSelectStart={() => {
+                  setSelectingFor('start')
+                  setShowLocationModal(true)
+                }}
+                onSelectEnd={() => {
+                  setSelectingFor('end')
+                  setShowLocationModal(true)
+                }}
+                onStartAdventure={handleStartAdventure}
+                isPending={calculateRouteAction.isPending || initializeDeckAction.isPending}
+              />
+            )}
+
+            {/* Route Details (Active) */}
+            {adventure.routeData && (
+              <AdventureRouteDetails
+                adventure={adventure}
+                onReset={() => dispatch(resetAdventure())}
+              />
+            )}
+          </div>
+
+          {/* Column 2: The Encounter (NPC) */}
+          <div className="space-y-6">
+            {/* NPC Serving Panel moved here if needed, or keep in col 2 */}
             {adventure.status !== 'idle' && <NPCServingPanel />}
 
-            {/* Inventory Display */}
-            {adventure.status !== 'idle' && <InventoryDisplay />}
-
-            {/* Card Draw */}
-            {adventure.status !== 'idle' && adventure.deckId && <CardDraw />}
-
-            {/* Drink Crafting */}
-            <div className="card bg-base-200 border border-base-300 shadow-lg">
-              <div className="card-body">
-                <h2 className="card-title flex items-center gap-2">
-                  <Wine size={20} className="text-orange-500" />
-                  Craft
-                </h2>
-                <div className="divider my-2" />
-                <p className="text-sm text-base-content/70 mb-4">
-                  Explore our cocktail collection and craft drinks
-                </p>
-                <Link to="/drinks" className="btn btn-primary btn-sm w-full">
-                  View Cocktails
-                </Link>
+            {/* If idle, show placeholder or tips */}
+            {adventure.status === 'idle' && (
+              <div className="card bg-base-200 border border-base-300 border-dashed h-full">
+                <div className="card-body items-center text-center opacity-50 justify-center">
+                  <CheckCircle size={48} className="mb-2" />
+                  <h3 className="font-bold">No Active Customer</h3>
+                  <p className="text-sm">Start your adventure to meet NPCs.</p>
+                </div>
               </div>
-            </div>
+            )}
+          </div>
+
+          {/* Column 3: Resources & Actions */}
+          <div className="space-y-6">
+            {adventure.status !== 'idle' && (
+              <>
+                <InventoryDisplay />
+                {adventure.deckId && <CardDraw />}
+
+                {/* Drink Crafting CTA */}
+                <div className="card bg-linear-to-br from-primary to-secondary text-primary-content shadow-xl">
+                  <div className="card-body">
+                    <h2 className="card-title flex items-center gap-2">
+                      <Wine size={24} />
+                      Ready to Mix?
+                    </h2>
+                    <p className="opacity-90 text-sm">
+                      Use your ingredients to craft the perfect drink for the current NPC.
+                    </p>
+                    <div className="card-actions justify-end mt-4">
+                      <Link
+                        to="/drinks"
+                        className="btn btn-white text-primary hover:bg-base-100 border-none w-full"
+                      >
+                        Open Bar Menu
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Placeholder for idle state in column 3 */}
+            {adventure.status === 'idle' && (
+              <div className="card bg-base-200 border border-base-300 border-dashed">
+                <div className="card-body items-center text-center opacity-50">
+                  <Wine size={48} className="mb-2" />
+                  <h3 className="font-bold">Bar Closed</h3>
+                  <p className="text-sm">
+                    Start your adventure to open the bar and manage inventory.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Location Selector Modal */}
-        {showLocationModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-base-100 rounded-lg shadow-xl max-w-md w-full max-h-96 p-6">
-              <h3 className="text-xl font-bold mb-4">
-                Select {selectingFor === 'start' ? 'Start' : 'End'} Location
-              </h3>
-              <LocationSelector
-                onSelect={handleLocationSelect}
-                label={selectingFor === 'start' ? 'Start Location' : 'End Location'}
-              />
-              <button
-                onClick={() => {
-                  setShowLocationModal(false)
-                  setSelectingFor(null)
-                }}
-                className="btn btn-ghost w-full mt-4"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        )}
+        <LocationSelectionModal
+          isOpen={showLocationModal}
+          selectingFor={selectingFor}
+          onClose={() => {
+            setShowLocationModal(false)
+            setSelectingFor(null)
+          }}
+          onSelect={handleLocationSelect}
+        />
 
         {/* Adventure Summary Modal */}
         {adventure.completedNPCs.length === adventure.routeData?.stopPoints.length && (

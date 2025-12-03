@@ -33,14 +33,41 @@ const endIcon = L.icon({
   shadowSize: [41, 41],
 })
 
+const currentStopIcon = L.icon({
+  iconUrl:
+    'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+})
+
+const completedStopIcon = L.icon({
+  iconUrl:
+    'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+})
+
 export interface MapViewProps {
   startLocation?: { lat: number; lng: number; name?: string }
   endLocation?: { lat: number; lng: number; name?: string }
   stopPoints?: { lat: number; lng: number; name?: string }[]
   route?: [number, number][]
+  currentStopIndex?: number
 }
 
-export function MapView({ startLocation, endLocation, stopPoints = [], route = [] }: MapViewProps) {
+export function MapView({
+  startLocation,
+  endLocation,
+  stopPoints = [],
+  route = [],
+  currentStopIndex = -1,
+}: MapViewProps) {
   const mapCenter: [number, number] = startLocation
     ? [startLocation.lat, startLocation.lng]
     : [51.505, -0.09]
@@ -97,16 +124,31 @@ export function MapView({ startLocation, endLocation, stopPoints = [], route = [
         )}
 
         {/* Stop points */}
-        {stopPoints.map((stop, index) => (
-          <Marker key={index} position={[stop.lat, stop.lng]} icon={defaultIcon}>
-            <Popup>
-              <div>
-                <strong>Stop {index + 1}</strong>
-                <p>{stop.name || `Stop point ${index + 1}`}</p>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+        {stopPoints.map((stop, index) => {
+          let icon = defaultIcon
+          let statusLabel = `Stop ${index + 1}`
+
+          if (index < currentStopIndex) {
+            icon = completedStopIcon
+            statusLabel = `✓ Stop ${index + 1} (Completed)`
+          } else if (index === currentStopIndex) {
+            icon = currentStopIcon
+            statusLabel = `📍 Stop ${index + 1} (Current)`
+          } else {
+            statusLabel = `Stop ${index + 1} (Upcoming)`
+          }
+
+          return (
+            <Marker key={index} position={[stop.lat, stop.lng]} icon={icon}>
+              <Popup>
+                <div>
+                  <strong>{statusLabel}</strong>
+                  <p>{stop.name || `Stop point ${index + 1}`}</p>
+                </div>
+              </Popup>
+            </Marker>
+          )
+        })}
       </MapContainer>
     </div>
   )

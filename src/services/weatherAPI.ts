@@ -1,7 +1,5 @@
 import axios from 'axios'
-
-// Open-Meteo Free Weather API (no API key needed)
-const WEATHER_API = 'https://api.open-meteo.com/v1/forecast'
+import { WEATHER_API, WEATHER_CODE_DESCRIPTIONS } from '../constants'
 
 export interface WeatherData {
   temperature: number
@@ -23,34 +21,6 @@ export interface WeatherMoodModifier {
   suggested_ingredients: string[] // Additional ingredients to add
   removed_ingredients: string[] // Ingredients to remove
   description: string
-}
-
-// Weather codes interpretation (WMO Weather interpretation codes)
-const WEATHER_CODE_DESCRIPTIONS: Record<number, string> = {
-  0: 'Clear sky',
-  1: 'Mainly clear',
-  2: 'Partly cloudy',
-  3: 'Overcast',
-  45: 'Foggy',
-  48: 'Depositing rime fog',
-  51: 'Light drizzle',
-  53: 'Moderate drizzle',
-  55: 'Dense drizzle',
-  61: 'Slight rain',
-  63: 'Moderate rain',
-  65: 'Heavy rain',
-  71: 'Slight snow',
-  73: 'Moderate snow',
-  75: 'Heavy snow',
-  77: 'Snow grains',
-  80: 'Slight rain showers',
-  81: 'Moderate rain showers',
-  82: 'Violent rain showers',
-  85: 'Slight snow showers',
-  86: 'Heavy snow showers',
-  95: 'Thunderstorm',
-  96: 'Thunderstorm with slight hail',
-  99: 'Thunderstorm with heavy hail',
 }
 
 /**
@@ -104,119 +74,72 @@ export async function getWeather(latitude: number, longitude: number): Promise<W
  * Calculate mood modifier based on weather conditions
  */
 export function calculateWeatherMoodModifier(weather: WeatherData): WeatherMoodModifier {
-  // Temperature modifier (optimal around 20°C)
-  let temperatureModifier = 0
-  if (weather.temperature >= 18 && weather.temperature <= 24) {
-    temperatureModifier = 3 // Happy/energetic weather
-  } else if (weather.temperature >= 15 && weather.temperature < 18) {
-    temperatureModifier = 1 // Cool but pleasant
-  } else if (weather.temperature > 24 && weather.temperature <= 28) {
-    temperatureModifier = 1 // Warm and pleasant
-  } else if (weather.temperature > 28) {
-    temperatureModifier = -2 // Too hot, irritable
-  } else if (weather.temperature < 15) {
-    temperatureModifier = -3 // Cold, grumpy
-  }
+  // 1. Calculate Modifiers using concise ternary logic
+  const temperatureModifier =
+    weather.temperature < 15
+      ? -3
+      : weather.temperature < 18
+        ? 1
+        : weather.temperature <= 24
+          ? 3
+          : weather.temperature <= 28
+            ? 1
+            : -2
 
-  // Precipitation modifier
-  let precipitationModifier = 0
-  if (weather.precipitation === 0) {
-    precipitationModifier = 2 // Dry weather is nice
-  } else if (weather.precipitation > 0 && weather.precipitation <= 1) {
-    precipitationModifier = 0 // Light rain, neutral
-  } else if (weather.precipitation > 1 && weather.precipitation <= 5) {
-    precipitationModifier = -2 // Moderate rain, gloomy
-  } else if (weather.precipitation > 5) {
-    precipitationModifier = -3 // Heavy rain, very gloomy
-  }
+  const precipitationModifier =
+    weather.precipitation === 0
+      ? 2
+      : weather.precipitation <= 1
+        ? 0
+        : weather.precipitation <= 5
+          ? -2
+          : -3
 
-  // Cloud cover modifier
-  let cloudinessModifier = 0
-  if (weather.cloudCover <= 25) {
-    cloudinessModifier = 2 // Clear skies, happy
-  } else if (weather.cloudCover <= 50) {
-    cloudinessModifier = 1 // Partly cloudy, slightly happy
-  } else if (weather.cloudCover <= 75) {
-    cloudinessModifier = -1 // Mostly cloudy, slightly sad
-  } else {
-    cloudinessModifier = -2 // Overcast, gloomy
-  }
+  const cloudinessModifier =
+    weather.cloudCover <= 25 ? 2 : weather.cloudCover <= 50 ? 1 : weather.cloudCover <= 75 ? -1 : -2
 
-  // Wind modifier
-  let windModifier = 0
-  if (weather.windSpeed <= 10) {
-    windModifier = 1 // Calm, pleasant
-  } else if (weather.windSpeed <= 20) {
-    windModifier = 0 // Moderate wind
-  } else if (weather.windSpeed <= 30) {
-    windModifier = -1 // Strong wind, irritable
-  } else {
-    windModifier = -2 // Very strong wind, very irritable
-  }
+  const windModifier =
+    weather.windSpeed <= 10 ? 1 : weather.windSpeed <= 20 ? 0 : weather.windSpeed <= 30 ? -1 : -2
 
-  // Humidity modifier
-  let humidityModifier = 0
-  if (weather.humidity >= 40 && weather.humidity <= 60) {
-    humidityModifier = 1 // Comfortable humidity
-  } else if (weather.humidity < 40 || weather.humidity > 70) {
-    humidityModifier = -1 // Uncomfortable humidity
-  }
+  const humidityModifier = weather.humidity >= 40 && weather.humidity <= 60 ? 1 : -1
 
-  // Calculate overall mood score
-  const overallMoodScore =
+  // 2. Calculate Overall Mood Score
+  const score =
     temperatureModifier +
     precipitationModifier +
     cloudinessModifier +
     windModifier +
     humidityModifier
 
-  // Determine mood category
-  let overallMood: WeatherMoodModifier['overall_mood']
-  if (overallMoodScore >= 5) {
-    overallMood = 'happy'
-  } else if (overallMoodScore >= 2) {
-    overallMood = 'energetic'
-  } else if (overallMoodScore >= -2) {
-    overallMood = 'neutral'
-  } else if (overallMoodScore >= -5) {
-    overallMood = 'calm'
-  } else {
-    overallMood = 'sad'
+  // 3. Determine Mood Category
+  let overallMood: WeatherMoodModifier['overall_mood'] = 'neutral'
+  if (score >= 5) overallMood = 'happy'
+  else if (score >= 2) overallMood = 'energetic'
+  else if (score >= -2) overallMood = 'neutral'
+  else if (score >= -5) overallMood = 'calm'
+  else overallMood = 'sad'
+
+  // 4. Determine Ingredients based on Mood
+  const moodIngredients: Record<string, { add: string[]; remove: string[] }> = {
+    happy: { add: ['Fresh Mint', 'Lemon Peel'], remove: [] },
+    energetic: { add: ['Fresh Basil', 'Ginger'], remove: [] },
+    sad: { add: ['Honey', 'Vermouth'], remove: ['Fresh Basil'] },
+    calm: { add: ['Honey', 'Fresh Mint'], remove: ['Ginger'] },
+    neutral: { add: [], remove: [] },
   }
 
-  // Determine additional/removed ingredients based on mood
-  const suggestedIngredients: string[] = []
-  const removedIngredients: string[] = []
-
-  if (overallMood === 'happy') {
-    suggestedIngredients.push('Fresh Mint', 'Lemon Peel')
-    // Happy people want fresh, citrus drinks
-  } else if (overallMood === 'energetic') {
-    suggestedIngredients.push('Fresh Basil', 'Ginger')
-    // Energetic people want spicy, herbal drinks
-  } else if (overallMood === 'sad') {
-    suggestedIngredients.push('Honey', 'Vermouth')
-    removedIngredients.push('Fresh Basil')
-    // Sad people want comforting, rich drinks
-  } else if (overallMood === 'calm') {
-    suggestedIngredients.push('Honey', 'Fresh Mint')
-    removedIngredients.push('Ginger')
-    // Calm people want soothing drinks
-  }
-
-  // Create description
-  const description = `Weather: ${weather.weatherDescription} | ${Math.round(weather.temperature)}°C | ${weather.humidity}% humidity`
+  const { add, remove } = moodIngredients[overallMood] || moodIngredients.neutral
 
   return {
-    temperature_modifier: Math.min(5, Math.max(-5, temperatureModifier)),
-    precipitation_modifier: Math.min(3, Math.max(-3, precipitationModifier)),
-    cloudiness_modifier: Math.min(2, Math.max(-2, cloudinessModifier)),
-    wind_modifier: Math.min(2, Math.max(-2, windModifier)),
-    humidity_modifier: Math.min(1, Math.max(-1, humidityModifier)),
+    temperature_modifier: temperatureModifier,
+    precipitation_modifier: precipitationModifier,
+    cloudiness_modifier: cloudinessModifier,
+    wind_modifier: windModifier,
+    humidity_modifier: humidityModifier,
     overall_mood: overallMood,
-    suggested_ingredients: [...new Set(suggestedIngredients)],
-    removed_ingredients: [...new Set(removedIngredients)],
-    description,
+    suggested_ingredients: add,
+    removed_ingredients: remove,
+    description: `Weather: ${weather.weatherDescription} | ${Math.round(weather.temperature)}°C | ${weather.humidity}% humidity`,
   }
 }
 
