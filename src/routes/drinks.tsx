@@ -8,7 +8,7 @@ import {
   useCocktailsByIngredientAction,
   useCocktailsByCategoryAction,
 } from '../actions/useCocktails'
-import { Wine } from 'lucide-react'
+import { Wine, ArrowLeft } from 'lucide-react'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useAppSelector, useAppDispatch } from '../app/hooks'
 import type { RootState } from '../app/store'
@@ -188,6 +188,14 @@ function DrinksPage() {
       />
 
       <div className="max-w-6xl mx-auto relative z-10">
+        {/* Back Button */}
+        <div className="mb-4">
+          <button onClick={() => window.history.back()} className="btn btn-ghost gap-2">
+            <ArrowLeft size={20} />
+            Back
+          </button>
+        </div>
+
         {/* Header */}
         <div className="mb-12 text-center">
           <div className="inline-block mb-6 p-6 bg-base-100 border-4 border-base-content/20 rounded-xl shadow-xl transform -rotate-1">
