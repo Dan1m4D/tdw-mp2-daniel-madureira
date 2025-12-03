@@ -9,36 +9,7 @@ export interface CocktailData {
   strGlass: string
   strInstructions: string
   strDrinkThumb: string
-  strIngredient1: string | null
-  strIngredient2: string | null
-  strIngredient3: string | null
-  strIngredient4: string | null
-  strIngredient5: string | null
-  strIngredient6: string | null
-  strIngredient7: string | null
-  strIngredient8: string | null
-  strIngredient9: string | null
-  strIngredient10: string | null
-  strIngredient11: string | null
-  strIngredient12: string | null
-  strIngredient13: string | null
-  strIngredient14: string | null
-  strIngredient15: string | null
-  strMeasure1: string | null
-  strMeasure2: string | null
-  strMeasure3: string | null
-  strMeasure4: string | null
-  strMeasure5: string | null
-  strMeasure6: string | null
-  strMeasure7: string | null
-  strMeasure8: string | null
-  strMeasure9: string | null
-  strMeasure10: string | null
-  strMeasure11: string | null
-  strMeasure12: string | null
-  strMeasure13: string | null
-  strMeasure14: string | null
-  strMeasure15: string | null
+  [key: string]: string | null
 }
 
 interface BaseDrink {
@@ -47,7 +18,9 @@ interface BaseDrink {
   image: string
 }
 
-export type DrinkPreview = BaseDrink
+export interface DrinkPreview extends BaseDrink {
+  ingredientNames?: string[]
+}
 
 export interface Drink extends BaseDrink {
   category: string
@@ -55,11 +28,13 @@ export interface Drink extends BaseDrink {
   glass: string
   instructions: string
   ingredients: Array<{ name: string; measure: string | null }>
+  ingredientNames: string[]
 }
 
 // Transform API response to our format
 function transformCocktail(cocktail: CocktailData): Drink {
   const ingredients: Array<{ name: string; measure: string | null }> = []
+  const ingredientNames: string[] = []
 
   for (let i = 1; i <= 15; i++) {
     const ingredientKey = `strIngredient${i}` as keyof CocktailData
@@ -71,6 +46,7 @@ function transformCocktail(cocktail: CocktailData): Drink {
         name: ingredient as string,
         measure: (cocktail[measureKey] as string | null) || null,
       })
+      ingredientNames.push(ingredient as string)
     }
   }
 
@@ -83,6 +59,7 @@ function transformCocktail(cocktail: CocktailData): Drink {
     instructions: cocktail.strInstructions,
     image: cocktail.strDrinkThumb,
     ingredients,
+    ingredientNames,
   }
 }
 
@@ -90,11 +67,23 @@ function transformCocktailPreview(cocktail: {
   idDrink: string
   strDrink: string
   strDrinkThumb: string
+  [key: string]: string | null | undefined
 }): DrinkPreview {
+  const ingredientNames: string[] = []
+
+  // Try to extract ingredients if available (e.g. from search results)
+  for (let i = 1; i <= 15; i++) {
+    const ingredientKey = `strIngredient${i}`
+    if (cocktail[ingredientKey]) {
+      ingredientNames.push(cocktail[ingredientKey])
+    }
+  }
+
   return {
     id: cocktail.idDrink,
     name: cocktail.strDrink,
     image: cocktail.strDrinkThumb,
+    ingredientNames: ingredientNames.length > 0 ? ingredientNames : undefined,
   }
 }
 

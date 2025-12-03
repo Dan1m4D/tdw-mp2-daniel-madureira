@@ -25,7 +25,7 @@ Cards are mapped to ingredients based on their suit:
 | Suit          | Category                | Examples                                                           |
 | ------------- | ----------------------- | ------------------------------------------------------------------ |
 | Spades (♠)   | Spirits                 | Rum, Gin, Tequila, Whiskey, Vodka, etc. (13 spirits)               |
-| Hearts (♥)   | Juices & Mixers         | Lime Juice, Lemon Juice, Orange Juice, Cola, etc. (13 juices)      |
+| Hearts (♥)   | Juices & Mixers         | Lime Juice, Lemon Juice, Orange Juice, Coca-Cola, etc. (13 juices) |
 | Diamonds (♦) | Syrups & Sweeteners     | Simple Syrup, Honey, Agave Syrup, Coffee Liqueur, etc. (13 syrups) |
 | Clubs (♣)    | Herbs, Spices & Bitters | Fresh Mint, Fresh Basil, Bitters, Vermouth, etc. (13 herbs)        |
 

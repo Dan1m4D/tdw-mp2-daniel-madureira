@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { getRouteWithStops, type Coordinate, type RouteResponse } from '../services/routingAPI'
+import { getWeather, type WeatherData } from '../services/weatherAPI'
 import {
   createDeck,
   drawCard,
@@ -63,6 +64,16 @@ export function useDrawCardAction() {
       }
       const ingredient = cardToIngredient(card)
       return { card, ingredient, timestamp: Date.now() } as DrawnCard
+    },
+  })
+}
+
+// Action for fetching weather
+export function useGetWeatherAction() {
+  return useMutation({
+    mutationFn: async ({ lat, lng }: { lat: number; lng: number }): Promise<WeatherData> => {
+      const weather = await getWeather(lat, lng)
+      return weather
     },
   })
 }

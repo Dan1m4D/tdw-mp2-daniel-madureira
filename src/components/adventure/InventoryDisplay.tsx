@@ -1,6 +1,6 @@
 import { Backpack } from 'lucide-react'
-import { useAppSelector } from '../app/hooks'
-import type { RootState } from '../app/store'
+import { useAppSelector } from '../../app/hooks'
+import type { RootState } from '../../app/store'
 
 export function InventoryDisplay() {
   const inventory = useAppSelector((state: RootState) => state.game.inventory)

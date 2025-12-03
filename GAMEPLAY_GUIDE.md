@@ -105,7 +105,7 @@ You have two ways to add ingredients:
 | AH   | ♥ Hearts   | Juices   | Lime Juice                                                                                                                          |
 | 2H   | ♥ Hearts   | Juices   | Lemon Juice                                                                                                                         |
 | 3H   | ♥ Hearts   | Juices   | Orange Juice                                                                                                                        |
-| ...  | ♥ Hearts   | Juices   | Cranberry, Pineapple, Ginger Beer, Tonic, Club Soda, Cola, Ginger Ale, Coconut Milk, Tomato Juice, Grenadine                        |
+| ...  | ♥ Hearts   | Juices   | Cranberry, Pineapple, Ginger Beer, Tonic, Club Soda, Coca-Cola, Ginger Ale, Coconut Milk, Tomato Juice, Grenadine                   |
 | AD   | ♦ Diamonds | Syrups   | Simple Syrup                                                                                                                        |
 | 2D   | ♦ Diamonds | Syrups   | Honey                                                                                                                               |
 | 3D   | ♦ Diamonds | Syrups   | Agave Syrup                                                                                                                         |

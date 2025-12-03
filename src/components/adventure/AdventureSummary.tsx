@@ -1,11 +1,11 @@
 import { Sparkles, Wine, RotateCcw } from 'lucide-react'
 import { useNavigate } from '@tanstack/react-router'
-import { useAppDispatch, useAppSelector } from '../app/hooks'
-import { resetAdventure } from '../features/adventure/adventureSlice'
-import { resetCrafting } from '../features/crafting/craftingSlice'
-import { clearCurrentNPC } from '../features/npc/npcSlice'
-import { startGame } from '../features/game/gameSlice'
-import type { RootState } from '../app/store'
+import { useAppDispatch, useAppSelector } from '../../app/hooks'
+import { resetAdventure } from '../../features/adventure/adventureSlice'
+import { resetCrafting } from '../../features/crafting/craftingSlice'
+import { clearCurrentNPC } from '../../features/npc/npcSlice'
+import { startGame } from '../../features/game/gameSlice'
+import type { RootState } from '../../app/store'
 
 export function AdventureSummary() {
   const navigate = useNavigate()

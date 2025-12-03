@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { useAppDispatch, useAppSelector } from '../app/hooks'
-import { addDrawnCard } from '../features/adventure/adventureSlice'
-import { addIngredient } from '../features/game/gameSlice'
-import { useDrawCardAction } from '../actions/useAdventureQueries'
+import { useAppDispatch, useAppSelector } from '../../app/hooks'
+import { addDrawnCard } from '../../features/adventure/adventureSlice'
+import { addIngredient } from '../../features/game/gameSlice'
+import { useDrawCardAction } from '../../actions/useAdventureQueries'
 import { RotateCcw } from 'lucide-react'
 
 export function CardDraw() {

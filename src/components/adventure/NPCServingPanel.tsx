@@ -1,8 +1,8 @@
 import { Check, X, Wine } from 'lucide-react'
-import { useAppSelector, useAppDispatch } from '../app/hooks'
+import { useAppSelector, useAppDispatch } from '../../app/hooks'
 import { useNavigate } from '@tanstack/react-router'
-import { startCraftingForNPC } from '../features/crafting/craftingSlice'
-import type { RootState } from '../app/store'
+import { startCraftingForNPC } from '../../features/crafting/craftingSlice'
+import type { RootState } from '../../app/store'
 
 export function NPCServingPanel() {
   const navigate = useNavigate()

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { MapPin, Search, Loader, Globe } from 'lucide-react'
-import { geocodeLocation, type Coordinate } from '../services/routingAPI'
+import { geocodeLocation, type Coordinate } from '../../services/routingAPI'
 
 interface LocationSelectorProps {
   onSelect: (location: Coordinate) => void

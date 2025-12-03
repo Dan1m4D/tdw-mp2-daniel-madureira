@@ -1,6 +1,6 @@
 import { Users, CloudRain, Cloud, Sun, Wind } from 'lucide-react'
-import { useAppSelector } from '../app/hooks'
-import { selectCurrentNPC } from '../features/npc/npcSlice'
+import { useAppSelector } from '../../app/hooks'
+import { selectCurrentNPC } from '../../features/npc/npcSlice'
 
 const MOOD_EMOJI: Record<string, string> = {
   happy: '😊',
