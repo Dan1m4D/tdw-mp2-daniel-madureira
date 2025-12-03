@@ -66,23 +66,23 @@ const NPC_DESCRIPTIONS: Record<string, string> = {
 const BASE_INGREDIENTS = [
   'Rum',
   'Gin',
-  'Vodka',
   'Tequila',
   'Whiskey',
+  'Vodka', // Common spirits
   'Lime Juice',
   'Lemon Juice',
-  'Orange Juice',
-  'Cranberry Juice',
-  'Pineapple Juice',
-  'Grenadine Syrup',
+  'Orange Juice', // Juices
   'Simple Syrup',
-  'Mint',
-  'Basil',
-  'Vermouth',
-  'Cointreau',
-  'Angostura Bitters',
-  'Lime Peel',
-  'Orange Peel',
+  'Sugar',
+  'Honey',
+  'Agave Syrup', // Syrups
+  'Fresh Mint',
+  'Fresh Basil', // Herbs
+  'Bitters',
+  'Vermouth', // Fortified
+  'Olive',
+  'Lemon Peel',
+  'Orange Peel', // Garnishes
 ]
 
 function getRandomNPCName(): string {
@@ -95,12 +95,21 @@ function getRandomNPCName(): string {
   return name
 }
 
-function generateNPCRequirements(): string[] {
+function generateNPCRequirements(availableIngredients: string[]): string[] {
   const numRequirements = Math.floor(Math.random() * 3) + 3 // 3-5 ingredients
   const requirements: string[] = []
 
+  // Filter to only use available ingredients
+  const filteredIngredients = availableIngredients.filter(ing => BASE_INGREDIENTS.includes(ing))
+
+  // If not enough available ingredients, add some base ingredients
+  const ingredientPool =
+    filteredIngredients.length > 0
+      ? [...filteredIngredients, ...BASE_INGREDIENTS]
+      : BASE_INGREDIENTS
+
   while (requirements.length < numRequirements) {
-    const ingredient = BASE_INGREDIENTS[Math.floor(Math.random() * BASE_INGREDIENTS.length)]
+    const ingredient = ingredientPool[Math.floor(Math.random() * ingredientPool.length)]
     if (!requirements.includes(ingredient)) {
       requirements.push(ingredient)
     }
@@ -109,9 +118,13 @@ function generateNPCRequirements(): string[] {
   return requirements
 }
 
-export function generateNPC(locationWeather: WeatherData, locationName: string): NPC {
+export function generateNPC(
+  locationWeather: WeatherData,
+  locationName: string,
+  availableIngredients: string[] = []
+): NPC {
   const name = getRandomNPCName()
-  const baseRequirements = generateNPCRequirements()
+  const baseRequirements = generateNPCRequirements(availableIngredients)
   const weatherModifier = calculateWeatherMoodModifier(locationWeather)
   const currentRequirements = applyWeatherModifierToIngredients(baseRequirements, weatherModifier)
 

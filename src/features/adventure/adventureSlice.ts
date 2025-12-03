@@ -1,6 +1,6 @@
-import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit'
-import { getRouteWithStops, type Coordinate, type RouteResponse } from '../../services/routingAPI'
-import { createDeck, drawCard, cardToIngredient, type Card } from '../../services/cardsAPI'
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
+import { type Coordinate, type RouteResponse } from '../../services/routingAPI'
+import { type Card } from '../../services/cardsAPI'
 
 export interface RouteData {
   mainRoute: RouteResponse
@@ -15,6 +15,15 @@ export interface DrawnCard {
   timestamp: number
 }
 
+export interface CompletedNPCRecord {
+  npcId: string
+  npcName: string
+  stopIndex: number
+  drinkCrafted: string
+  ingredientsUsed: string[]
+  craftedAt: number
+}
+
 export interface AdventureState {
   startLocation: Coordinate | null
   endLocation: Coordinate | null
@@ -22,8 +31,7 @@ export interface AdventureState {
   deckId: string | null
   currentStopIndex: number
   drawnCards: DrawnCard[]
-  loading: boolean
-  error: string | null
+  completedNPCs: CompletedNPCRecord[]
   status: 'idle' | 'planning' | 'active' | 'completed'
 }
 
@@ -34,53 +42,9 @@ const initialState: AdventureState = {
   deckId: null,
   currentStopIndex: 0,
   drawnCards: [],
-  loading: false,
-  error: null,
+  completedNPCs: [],
   status: 'idle',
 }
-
-// Async thunk to calculate route
-export const calculateRoute = createAsyncThunk(
-  'adventure/calculateRoute',
-  async (
-    { start, end, numStops }: { start: Coordinate; end: Coordinate; numStops?: number },
-    { rejectWithValue }
-  ) => {
-    try {
-      const routeData = await getRouteWithStops(start, end, numStops || 3)
-      return routeData
-    } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Failed to calculate route')
-    }
-  }
-)
-
-// Async thunk to initialize deck
-export const initializeDeck = createAsyncThunk(
-  'adventure/initializeDeck',
-  async (_, { rejectWithValue }) => {
-    try {
-      const deckId = await createDeck()
-      return deckId
-    } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Failed to create deck')
-    }
-  }
-)
-
-// Async thunk to draw a card
-export const drawCardAndGetIngredient = createAsyncThunk(
-  'adventure/drawCard',
-  async (deckId: string, { rejectWithValue }) => {
-    try {
-      const card = await drawCard(deckId)
-      const ingredient = cardToIngredient(card)
-      return { card, ingredient, timestamp: Date.now() }
-    } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Failed to draw card')
-    }
-  }
-)
 
 const adventureSlice = createSlice({
   name: 'adventure',
@@ -88,14 +52,40 @@ const adventureSlice = createSlice({
   reducers: {
     setStartLocation: (state, action: PayloadAction<Coordinate>) => {
       state.startLocation = action.payload
-      state.error = null
     },
     setEndLocation: (state, action: PayloadAction<Coordinate>) => {
       state.endLocation = action.payload
-      state.error = null
+    },
+    setRouteData: (state, action: PayloadAction<RouteData>) => {
+      state.routeData = action.payload
+      state.status = 'active'
+    },
+    setDeckId: (state, action: PayloadAction<string>) => {
+      state.deckId = action.payload
+    },
+    addDrawnCard: (state, action: PayloadAction<DrawnCard>) => {
+      state.drawnCards.push(action.payload)
     },
     setStatus: (state, action: PayloadAction<AdventureState['status']>) => {
       state.status = action.payload
+    },
+    completeNPC: (
+      state,
+      action: PayloadAction<{
+        npcId: string
+        npcName: string
+        drinkCrafted: string
+        ingredientsUsed: string[]
+      }>
+    ) => {
+      state.completedNPCs.push({
+        npcId: action.payload.npcId,
+        npcName: action.payload.npcName,
+        stopIndex: state.currentStopIndex,
+        drinkCrafted: action.payload.drinkCrafted,
+        ingredientsUsed: action.payload.ingredientsUsed,
+        craftedAt: Date.now(),
+      })
     },
     advanceToNextStop: state => {
       if (state.routeData && state.currentStopIndex < state.routeData.stopPoints.length) {
@@ -109,70 +99,21 @@ const adventureSlice = createSlice({
       state.deckId = null
       state.currentStopIndex = 0
       state.drawnCards = []
-      state.error = null
+      state.completedNPCs = []
       state.status = 'idle'
-      state.loading = false
     },
-    clearError: state => {
-      state.error = null
-    },
-  },
-  extraReducers: builder => {
-    builder
-      // calculateRoute
-      .addCase(calculateRoute.pending, state => {
-        state.loading = true
-        state.error = null
-        state.status = 'planning'
-      })
-      .addCase(calculateRoute.fulfilled, (state, action) => {
-        state.loading = false
-        state.routeData = action.payload
-        state.status = 'active'
-        state.error = null
-      })
-      .addCase(calculateRoute.rejected, (state, action) => {
-        state.loading = false
-        state.error = action.payload as string
-        state.status = 'idle'
-      })
-      // initializeDeck
-      .addCase(initializeDeck.pending, state => {
-        state.loading = true
-        state.error = null
-      })
-      .addCase(initializeDeck.fulfilled, (state, action) => {
-        state.loading = false
-        state.deckId = action.payload
-        state.error = null
-      })
-      .addCase(initializeDeck.rejected, (state, action) => {
-        state.loading = false
-        state.error = action.payload as string
-      })
-      // drawCardAndGetIngredient
-      .addCase(drawCardAndGetIngredient.pending, state => {
-        state.loading = true
-        state.error = null
-      })
-      .addCase(drawCardAndGetIngredient.fulfilled, (state, action) => {
-        state.loading = false
-        state.drawnCards.push(action.payload)
-        state.error = null
-      })
-      .addCase(drawCardAndGetIngredient.rejected, (state, action) => {
-        state.loading = false
-        state.error = action.payload as string
-      })
   },
 })
 
 export const {
   setStartLocation,
   setEndLocation,
+  setRouteData,
+  setDeckId,
+  addDrawnCard,
   setStatus,
+  completeNPC,
   advanceToNextStop,
   resetAdventure,
-  clearError,
 } = adventureSlice.actions
 export default adventureSlice.reducer

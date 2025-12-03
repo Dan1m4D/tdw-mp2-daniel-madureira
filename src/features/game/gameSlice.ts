@@ -38,12 +38,14 @@ export const gameSlice = createSlice({
       state.status = 'playing'
     },
     addIngredient: (state, action) => {
-      if (!state.inventory.includes(action.payload)) {
+      if (!state.inventory.some(ing => ing.toLowerCase() === action.payload.toLowerCase())) {
         state.inventory.push(action.payload)
       }
     },
     removeIngredient: (state, action) => {
-      state.inventory = state.inventory.filter(ing => ing !== action.payload)
+      state.inventory = state.inventory.filter(
+        ing => ing.toLowerCase() !== action.payload.toLowerCase()
+      )
     },
   },
 })

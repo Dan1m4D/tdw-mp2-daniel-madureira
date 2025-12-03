@@ -1,7 +1,5 @@
 import axios from 'axios'
-
-// OSRM (Open Source Routing Machine) API
-const OSRM_API = 'https://router.project-osrm.org'
+import { OSRM_API, NOMINATIM_API } from '../constants'
 
 export interface Coordinate {
   latitude: number
@@ -38,7 +36,7 @@ export interface NominatimResult {
  */
 export async function geocodeLocation(query: string): Promise<Coordinate[]> {
   try {
-    const response = await axios.get('https://nominatim.openstreetmap.org/search', {
+    const response = await axios.get(NOMINATIM_API, {
       params: {
         q: query,
         format: 'json',
@@ -66,7 +64,7 @@ export async function geocodeLocation(query: string): Promise<Coordinate[]> {
  */
 export async function reverseGeocode(latitude: number, longitude: number): Promise<string> {
   try {
-    const response = await axios.get('https://nominatim.openstreetmap.org/reverse', {
+    const response = await axios.get(`${NOMINATIM_API.replace('/search', '')}/reverse`, {
       params: {
         lat: latitude,
         lon: longitude,
