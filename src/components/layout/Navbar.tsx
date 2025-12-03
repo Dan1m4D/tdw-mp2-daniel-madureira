@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { Compass, Home, Map as MapIcon, Moon, Sun } from 'lucide-react'
+import { Wine, Home, Map as MapIcon, Moon, Sun } from 'lucide-react'
 import { useTheme } from '../../app/theme/useTheme'
 
 export function Navbar() {
@@ -11,7 +11,7 @@ export function Navbar() {
         {/* Logo */}
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-primary-content shadow-lg">
-            <Compass size={22} className="font-bold" />
+            <Wine size={22} className="font-bold" />
           </div>
           <div>
             <span className="text-lg font-bold text-primary tracking-wider font-serif block leading-none">

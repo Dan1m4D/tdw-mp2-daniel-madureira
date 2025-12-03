@@ -1,8 +1,8 @@
 import { Check, X, Wine } from 'lucide-react'
-import { useAppSelector, useAppDispatch } from '../app/hooks'
+import { useAppSelector, useAppDispatch } from '../../app/hooks'
 import { useNavigate } from '@tanstack/react-router'
-import { startCraftingForNPC } from '../features/crafting/craftingSlice'
-import type { RootState } from '../app/store'
+import { startCraftingForNPC } from '../../features/crafting/craftingSlice'
+import type { RootState } from '../../app/store'
 
 export function NPCServingPanel() {
   const navigate = useNavigate()
@@ -15,7 +15,7 @@ export function NPCServingPanel() {
       <div className="card bg-base-200 shadow-lg">
         <div className="card-body text-center py-8">
           <p className="text-base-content/60 italic">No customer to serve yet...</p>
-          <p className="text-xs text-base-content/50 mt-2">Draw a card or advance to next stop</p>
+          <p className="text-xs text-base-content/50 mt-2">Draw a card to get ingredients</p>
         </div>
       </div>
     )

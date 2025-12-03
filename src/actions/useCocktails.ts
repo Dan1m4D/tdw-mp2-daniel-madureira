@@ -1,7 +1,7 @@
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query'
 import { cocktailAPI } from '../services/cocktailAPI'
 
-export function useCocktailSearch(name: string) {
+export function useCocktailSearchAction(name: string) {
   return useQuery({
     queryKey: ['cocktails', 'search', name],
     queryFn: () => cocktailAPI.searchByName(name),
@@ -10,7 +10,7 @@ export function useCocktailSearch(name: string) {
   })
 }
 
-export function useRandomCocktail() {
+export function useRandomCocktailAction() {
   return useQuery({
     queryKey: ['cocktails', 'random'],
     queryFn: () => cocktailAPI.getRandomDrink(),
@@ -18,7 +18,7 @@ export function useRandomCocktail() {
   })
 }
 
-export function useCocktailById(id: string) {
+export function useCocktailByIdAction(id: string) {
   return useQuery({
     queryKey: ['cocktails', 'detail', id],
     queryFn: () => cocktailAPI.getDrinkById(id),
@@ -27,7 +27,7 @@ export function useCocktailById(id: string) {
   })
 }
 
-export function useCocktailsByIngredient(ingredient: string) {
+export function useCocktailsByIngredientAction(ingredient: string) {
   return useQuery({
     queryKey: ['cocktails', 'ingredient', ingredient],
     queryFn: () => cocktailAPI.getByIngredient(ingredient),
@@ -36,7 +36,16 @@ export function useCocktailsByIngredient(ingredient: string) {
   })
 }
 
-export function useCocktailCategories() {
+export function useCocktailsByCategoryAction(category: string) {
+  return useQuery({
+    queryKey: ['cocktails', 'category', category],
+    queryFn: () => cocktailAPI.getDrinksByCategory(category),
+    enabled: category.length > 0,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  })
+}
+
+export function useCocktailCategoriesAction() {
   return useQuery({
     queryKey: ['cocktails', 'categories'],
     queryFn: () => cocktailAPI.getCategories(),
@@ -44,7 +53,15 @@ export function useCocktailCategories() {
   })
 }
 
-export function useAllCocktails() {
+export function useCocktailIngredientsAction() {
+  return useQuery({
+    queryKey: ['cocktails', 'ingredients'],
+    queryFn: () => cocktailAPI.getIngredientsList(),
+    staleTime: 1000 * 60 * 60, // 1 hour - rarely changes
+  })
+}
+
+export function useAllCocktailsAction() {
   return useQuery({
     queryKey: ['cocktails', 'all'],
     queryFn: () => cocktailAPI.getAllDrinks(),
@@ -52,11 +69,11 @@ export function useAllCocktails() {
   })
 }
 
-export function useInfiniteAllCocktails() {
+export function useInfiniteAllCocktailsAction() {
   return useInfiniteQuery({
     queryKey: ['cocktails', 'infinite', 'all'],
     queryFn: ({ pageParam }) => cocktailAPI.getAllDrinksPaginated(pageParam),
-    initialPageParam: { categoryIndex: 0, page: 0 },
+    initialPageParam: { letterIndex: 0 },
     getNextPageParam: lastPage => lastPage.nextPage,
     staleTime: 1000 * 60 * 30, // 30 minutes
   })
