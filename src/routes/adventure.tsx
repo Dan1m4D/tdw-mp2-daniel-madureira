@@ -90,26 +90,20 @@ function Adventure() {
 
   const mapData = adventure.routeData
     ? {
-        startLocation:
-          adventure.startLocation &&
-          adventure.startLocation.latitude !== undefined &&
-          adventure.startLocation.longitude !== undefined
-            ? {
-                lat: adventure.startLocation.latitude,
-                lng: adventure.startLocation.longitude,
-                name: adventure.startLocation.name,
-              }
-            : undefined,
-        endLocation:
-          adventure.endLocation &&
-          adventure.endLocation.latitude !== undefined &&
-          adventure.endLocation.longitude !== undefined
-            ? {
-                lat: adventure.endLocation.latitude,
-                lng: adventure.endLocation.longitude,
-                name: adventure.endLocation.name,
-              }
-            : undefined,
+        startLocation: adventure.startLocation
+          ? {
+              lat: adventure.startLocation.latitude,
+              lng: adventure.startLocation.longitude,
+              name: adventure.startLocation.name,
+            }
+          : undefined,
+        endLocation: adventure.endLocation
+          ? {
+              lat: adventure.endLocation.latitude,
+              lng: adventure.endLocation.longitude,
+              name: adventure.endLocation.name,
+            }
+          : undefined,
         stopPoints: adventure.routeData.stopPoints.map(stop => ({
           lat: stop.latitude,
           lng: stop.longitude,
@@ -133,7 +127,6 @@ function Adventure() {
             </p>
           </div>
           <div className="badge badge-lg badge-primary gap-2 p-4 shadow-md w-full md:w-auto justify-center">
-            <span className="loading loading-spinner loading-sm"></span>
             <span className="font-semibold uppercase tracking-wider text-sm">
               {adventure.status === 'idle' ? 'Ready to Start' : adventure.status}
             </span>

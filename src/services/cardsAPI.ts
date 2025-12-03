@@ -94,21 +94,3 @@ export function getCardDetails(card: Card): {
     image: card.images.png,
   }
 }
-
-/**
- * Draw multiple cards
- */
-export async function drawMultipleCards(deckId: string, count: number): Promise<Card[]> {
-  try {
-    const response = await axios.get<DeckResponse>(
-      `${DECK_API}/${deckId}/draw/?count=${Math.min(count, 52)}`
-    )
-    if (!response.data.success || !response.data.cards) {
-      throw new Error('Failed to draw cards')
-    }
-    return response.data.cards
-  } catch (error) {
-    console.error('Multiple cards draw error:', error)
-    throw new Error('Failed to draw cards')
-  }
-}

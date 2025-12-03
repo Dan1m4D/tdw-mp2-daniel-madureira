@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { MapPin, Search, Loader, Globe } from 'lucide-react'
-import { geocodeLocation, type Coordinate } from '../../services/routingAPI'
+import { type Coordinate } from '../../services/routingAPI'
+import { useGeocodeLocationAction } from '../../actions/useAdventureQueries'
 
 interface LocationSelectorProps {
   onSelect: (location: Coordinate) => void
@@ -19,35 +20,37 @@ export function LocationSelector({
 }: LocationSelectorProps) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Coordinate[]>([])
-  const [loading, setLoading] = useState(false)
   const [showResults, setShowResults] = useState(false)
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  const geocodeAction = useGeocodeLocationAction()
+  const loading = geocodeAction.isPending
+
+  const clearQueryResults = () => {
+    setResults([])
+    setShowResults(false)
+  }
+
   // Debounced search effect
   useEffect(() => {
+    if (!query.trim()) {
+      return
+    }
+
     // Clear previous timer
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current)
     }
 
-    if (!query.trim()) {
-      setResults([])
-      setShowResults(false)
-      return
-    }
-
     // Set new timer for debounced search
-    setLoading(true)
     debounceTimerRef.current = setTimeout(async () => {
       try {
-        const locations = await geocodeLocation(query)
+        const locations = await geocodeAction.mutateAsync(query)
         setResults(locations)
         setShowResults(true)
       } catch (error) {
         console.error('Search error:', error)
         setResults([])
-      } finally {
-        setLoading(false)
       }
     }, debounceDelay)
 
@@ -57,7 +60,7 @@ export function LocationSelector({
         clearTimeout(debounceTimerRef.current)
       }
     }
-  }, [query, debounceDelay])
+  }, [query, debounceDelay]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSelectLocation = (location: Coordinate) => {
     onSelect(location)
@@ -82,7 +85,13 @@ export function LocationSelector({
             placeholder={placeholder}
             className="input input-bordered join-item w-full placeholder-base-content/40 focus:outline-primary"
             value={query}
-            onChange={e => setQuery(e.target.value)}
+            onChange={e => {
+              const newQuery = e.target.value
+              setQuery(newQuery)
+              if (!newQuery.trim()) {
+                clearQueryResults()
+              }
+            }}
             onFocus={() => query && setShowResults(true)}
           />
           <button className="btn btn-primary join-item" disabled={loading} aria-label="Search">

@@ -1,5 +1,10 @@
 import { useMutation } from '@tanstack/react-query'
-import { getRouteWithStops, type Coordinate, type RouteResponse } from '../services/routingAPI'
+import {
+  getRouteWithStops,
+  geocodeLocation,
+  type Coordinate,
+  type RouteResponse,
+} from '../services/routingAPI'
 import { getWeather, type WeatherData } from '../services/weatherAPI'
 import {
   createDeck,
@@ -74,6 +79,16 @@ export function useGetWeatherAction() {
     mutationFn: async ({ lat, lng }: { lat: number; lng: number }): Promise<WeatherData> => {
       const weather = await getWeather(lat, lng)
       return weather
+    },
+  })
+}
+
+// Action for geocoding location
+export function useGeocodeLocationAction() {
+  return useMutation({
+    mutationFn: async (query: string) => {
+      const locations = await geocodeLocation(query)
+      return locations
     },
   })
 }
